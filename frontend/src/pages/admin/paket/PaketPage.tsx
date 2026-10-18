@@ -27,7 +27,7 @@ const formKosong: PaketFormValues = {
   kode: "",
   nama: "",
   mapel_id: "",
-  jenis: "STS",
+  jenis: "PTS",
   durasi_menit: 90,
   jumlah_soal: 0,
   acak_soal: true,

@@ -7,7 +7,7 @@ export interface Paket {
   nama: string;
   mapel_id: string;
   mapel_nama?: string;
-  jenis: "STS" | "SAS" | "USBK" | "UKK" | "Tryout";
+  jenis: "PTS" | "PAS" | "USBK" | "UKK" | "Tryout";
   durasi_menit: number;
   jumlah_soal: number;
   jumlah_soal_tersusun?: number;

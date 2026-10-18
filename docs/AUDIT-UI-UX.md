@@ -216,7 +216,7 @@ Aturan: judul grup kecil, uppercase, `text-xs`, tidak bisa diklik; grup yang sem
 ### 4.5 Dropdown → combobox + radio (menggantikan 35 `<select>` native)
 
 **Aturan (mengikat, dari riset §2):**
-- **≤5 opsi, pilihan tunggal, perlu dibandingkan → radio/segmented, bukan dropdown.** Berlaku untuk: Status jadwal (draft/aktif/pause/selesai), Jenis paket (STS/SAS/USBK/UKK/Tryout), Level soal (mudah/sedang/sulit), Status soal (draft/aktif/nonaktif/perlu_revisi/diarsipkan), Filter status Monitor (sudah pill — pertahankan). Jangan ubah jadi dropdown lagi.
+- **≤5 opsi, pilihan tunggal, perlu dibandingkan → radio/segmented, bukan dropdown.** Berlaku untuk: Status jadwal (draft/aktif/pause/selesai), Jenis paket (PTS/PAS/USBK/UKK/Tryout), Level soal (mudah/sedang/sulit), Status soal (draft/aktif/nonaktif/perlu_revisi/diarsipkan), Filter status Monitor (sudah pill — pertahankan). Jangan ubah jadi dropdown lagi.
 - **>5 opsi ATAU daftar dinamis dari server (mapel, kelas, jurusan, siswa, jadwal, bank soal, paket) → Combobox** (ketik untuk cari + keyboard navigasi + `aria-expanded/aria-activedescendant` + fallback ke `<select>` native di layar sentuh kecil bila perlu). Satu komponen `ui/Combobox` dipakai di SEMUA tempat — jangan buat combobox kedua.
 - **Tipe soal (16 opsi, 2 kelompok) → tetap `optgroup`, tapi dalam Combobox berkelompok** (grup "5 tipe standar AKM" / "11 varian") + deskripsi tipe tampil di bawah pemilih (pola yang sudah ada di `SoalEditor.tsx:575-589` dipertahankan).
 - **Filter jadwal di halaman laporan → `PemilihJadwal` (§4.4.4) yang memakai Combobox.**

@@ -160,7 +160,7 @@ func TestE2E(t *testing.T) {
 
 	// 1. Paket (admin) + 3 soal.
 	status, resp := cl.req("POST", "/api/v1/paket", adminID, "admin",
-		fmt.Sprintf(`{"kode":"STS-1","nama":"STS Informatika","mapel_id":"%s","jenis":"STS","durasi_menit":60,"jumlah_soal":0,"acak_soal":false,"acak_jawaban":false,"tampil_hasil":false}`, mapelID))
+		fmt.Sprintf(`{"kode":"PTS-1","nama":"PTS Informatika","mapel_id":"%s","jenis":"PTS","durasi_menit":60,"jumlah_soal":0,"acak_soal":false,"acak_jawaban":false,"tampil_hasil":false}`, mapelID))
 	if status != 201 {
 		t.Fatalf("buat paket: %d %v", status, resp)
 	}

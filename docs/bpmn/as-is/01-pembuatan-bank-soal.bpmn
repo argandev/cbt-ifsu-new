@@ -4,7 +4,7 @@
     <bpmn:participant id="Participant_Proses_PembuatanBankSoal_AsIs" name="Proses Pembuatan Bank Soal — Manual" processRef="Proses_PembuatanBankSoal_AsIs"/>
   </bpmn:collaboration>
   <bpmn:process id="Proses_PembuatanBankSoal_AsIs" name="Pembuatan Bank Soal (As-Is, Manual)" isExecutable="false">
-    <bpmn:documentation>Alur as-is (sebelum aplikasi CBT SMK v2): guru menyusun soal ujian di Microsoft Word, mencetak naskah induk, memfotokopi, dan menyimpan naskah di map/lemari terkunci. Asumsi: satu guru mengampu satu mata pelajaran; naskah bersifat rahasia sebelum ujian; tidak ada bank soal digital terpusat; verifikasi dilakukan manual oleh Wakakurikulum/Kaprodi; kisi-kisi mengacu pada kurikulum dan TP (tujuan pembelajaran) yang berlaku; STS/SAS/USBK mengikuti pola ujian sekolah konvensional Indonesia.</bpmn:documentation>
+    <bpmn:documentation>Alur as-is (sebelum aplikasi CBT SMK v2): guru menyusun soal ujian di Microsoft Word, mencetak naskah induk, memfotokopi, dan menyimpan naskah di map/lemari terkunci. Asumsi: satu guru mengampu satu mata pelajaran; naskah bersifat rahasia sebelum ujian; tidak ada bank soal digital terpusat; verifikasi dilakukan manual oleh Wakakurikulum/Kaprodi; kisi-kisi mengacu pada kurikulum dan TP (tujuan pembelajaran) yang berlaku; PTS/PAS/USBK mengikuti pola ujian sekolah konvensional Indonesia.</bpmn:documentation>
     <bpmn:laneSet id="LaneSet_Proses_PembuatanBankSoal_AsIs" name="Aktor">
       <bpmn:lane id="Lane_Proses_PembuatanBankSoal_AsIs_0" name="Guru Mata Pelajaran">
         <bpmn:flowNodeRef>Start1</bpmn:flowNodeRef>

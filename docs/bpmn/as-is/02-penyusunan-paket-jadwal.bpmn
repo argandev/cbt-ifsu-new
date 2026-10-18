@@ -4,7 +4,7 @@
     <bpmn:participant id="Participant_Proses_PenyusunanPaketJadwal_AsIs" name="Proses Penyusunan Paket dan Jadwal Ujian — Manual" processRef="Proses_PenyusunanPaketJadwal_AsIs"/>
   </bpmn:collaboration>
   <bpmn:process id="Proses_PenyusunanPaketJadwal_AsIs" name="Penyusunan Paket dan Jadwal Ujian (As-Is, Manual)" isExecutable="false">
-    <bpmn:documentation>Alur as-is: panitia menyusun jadwal ujian (STS/SAS/USBK) di kertas/papan pengumuman, membagi ruangan dan pengawas, serta menyiapkan distribusi naskah. Asumsi: jadwal disusun per semester; satu ruangan satu mata pelajaran per sesi; pengawas bukan guru pengampu mata pelajaran yang diujikan; naskah didistribusikan dalam amplop tertutup; tidak ada token, sesi digital, atau jadwal di aplikasi.</bpmn:documentation>
+    <bpmn:documentation>Alur as-is: panitia menyusun jadwal ujian (PTS/PAS/USBK) di kertas/papan pengumuman, membagi ruangan dan pengawas, serta menyiapkan distribusi naskah. Asumsi: jadwal disusun per semester; satu ruangan satu mata pelajaran per sesi; pengawas bukan guru pengampu mata pelajaran yang diujikan; naskah didistribusikan dalam amplop tertutup; tidak ada token, sesi digital, atau jadwal di aplikasi.</bpmn:documentation>
     <bpmn:laneSet id="LaneSet_Proses_PenyusunanPaketJadwal_AsIs" name="Aktor">
       <bpmn:lane id="Lane_Proses_PenyusunanPaketJadwal_AsIs_0" name="Panitia Ujian / Proktor">
         <bpmn:flowNodeRef>Start1</bpmn:flowNodeRef>

@@ -188,7 +188,7 @@ Kontrak teknis: `docs/KONTRAK.md`. Bukti uji beban:
 - Bank soal: CRUD, lock/unlock (pembuat bank ≠ pengunci bank),
   import; **5 tipe standar AKM + 11 varian/ekstensi aplikasi**
   (`docs/TIPE-SOAL.md`); soal kosong = skor 0.
-- Paket ujian (STS/SAS/USBK/UKK/Tryout) + susunan soal.
+- Paket ujian (PTS/PAS/USBK/UKK/Tryout) + susunan soal.
 - Jadwal: token (token kedua menghanguskan pertama, expiry
   900 detik), toleransi telat 15 menit, pause membekukan timer,
   usulan-unblock (pengawas) / unblock (proktor/admin).

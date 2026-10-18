@@ -674,7 +674,7 @@ func strPtr(s string) any {
 
 func validJenis(jenis string) bool {
 	switch jenis {
-	case "STS", "SAS", "USBK", "UKK", "Tryout":
+	case "PTS", "PAS", "USBK", "UKK", "Tryout":
 		return true
 	}
 	return false

@@ -30,7 +30,7 @@ import (
 func contohKartuPDF(nJadwal int) kartuPDFData {
 	d := kartuPDFData{
 		NamaSekolah: "SMK Contoh Bangsa",
-		NamaEvent:   "STS Ganjil 2026/2027",
+		NamaEvent:   "PTS Ganjil 2026/2027",
 		NamaSiswa:   "Budi Santoso",
 		NISN:        "0012345678",
 		Kelas:       "XI PPLG 1",
@@ -39,13 +39,13 @@ func contohKartuPDF(nJadwal int) kartuPDFData {
 	}
 	for i := 0; i < nJadwal; i++ {
 		d.Jadwal = append(d.Jadwal, kartuPDFJadwal{
-			NomorPeserta: fmt.Sprintf("STS-GANJIL-26/2026/%03d", i+1),
+			NomorPeserta: fmt.Sprintf("PTS-GANJIL-26/2026/%03d", i+1),
 			Mapel:        fmt.Sprintf("Mapel %d", i+1),
 			Paket:        fmt.Sprintf("Paket %d", i+1),
 			Tanggal:      "17 Okt 2026",
 			Jam:          "07:30 - 09:30",
 			Ruangan:      "Ruang 1",
-			EventNama:    "STS Ganjil 2026/2027",
+			EventNama:    "PTS Ganjil 2026/2027",
 		})
 	}
 	return d
@@ -60,7 +60,7 @@ func TestRenderKartuPDFDasar(t *testing.T) {
 		t.Fatalf("PDF harus diawali %%PDF, dapat %q", b[:min(20, len(b))])
 	}
 	// Kompresi dimatikan -> teks harus terbaca langsung di byte stream.
-	for _, teks := range []string{"Budi Santoso", "Mapel 1", "Kartu Peserta Ujian", "STS Ganjil 2026/2027", "Token ujian diberikan proktor"} {
+	for _, teks := range []string{"Budi Santoso", "Mapel 1", "Kartu Peserta Ujian", "PTS Ganjil 2026/2027", "Token ujian diberikan proktor"} {
 		if !bytes.Contains(b, []byte(teks)) {
 			t.Fatalf("PDF tidak berisi teks %q", teks)
 		}
@@ -156,10 +156,10 @@ func TestNamaFileKartuPDF(t *testing.T) {
 }
 
 func TestNamaEventGabungan(t *testing.T) {
-	if got := namaEventGabungan([]kartuPDFJadwal{{EventNama: "STS"}, {EventNama: "STS"}}); got != "STS" {
+	if got := namaEventGabungan([]kartuPDFJadwal{{EventNama: "PTS"}, {EventNama: "PTS"}}); got != "STS" {
 		t.Fatalf("satu event sama harus dipakai, dapat %q", got)
 	}
-	if got := namaEventGabungan([]kartuPDFJadwal{{EventNama: "STS"}, {EventNama: "SAS"}}); got != "Ujian Sekolah" {
+	if got := namaEventGabungan([]kartuPDFJadwal{{EventNama: "PTS"}, {EventNama: "PAS"}}); got != "Ujian Sekolah" {
 		t.Fatalf("event campur harus jadi 'Ujian Sekolah', dapat %q", got)
 	}
 	if got := namaEventGabungan(nil); got != "Ujian Sekolah" {
@@ -220,7 +220,7 @@ func TestRenderKartuPDFLayoutPoles(t *testing.T) {
 		t.Fatalf("8 jadwal harus 1 halaman, dapat %d", got)
 	}
 	// Nomor peserta utuh (tidak terpotong "...") + header tabel 1x.
-	if !bytes.Contains(b, []byte("STS-GANJIL-26/2026/001")) {
+	if !bytes.Contains(b, []byte("PTS-GANJIL-26/2026/001")) {
 		t.Fatalf("nomor peserta harus tampil utuh, tanpa pemotongan")
 	}
 	if got := bytes.Count(b, []byte("Nomor Peserta")); got != 1 {
@@ -284,7 +284,7 @@ func setupKartuPDFDB(t *testing.T) *pgxpool.Pool {
 		fmt.Sprintf(`INSERT INTO jurusan VALUES ('%s','PPLG','Pengembangan Perangkat Lunak dan Gim')`, kartuJurusan),
 		fmt.Sprintf(`INSERT INTO kelas VALUES ('%s','%s',11,'XI PPLG 1','2026/2027')`, kartuKelas, kartuJurusan),
 		fmt.Sprintf(`INSERT INTO mapel VALUES ('%s','INF','Informatika','umum',NULL,NULL)`, kartuMapel),
-		fmt.Sprintf(`INSERT INTO event VALUES ('%s','STS-GANJIL-26','STS Ganjil 2026/2027','STS',NULL,NULL,NULL,now())`, kartuEvent),
+		fmt.Sprintf(`INSERT INTO event VALUES ('%s','PTS-GANJIL-26','PTS Ganjil 2026/2027','STS',NULL,NULL,NULL,now())`, kartuEvent),
 		fmt.Sprintf(`INSERT INTO ruangan VALUES ('%s','R1','Ruang 1',40,'Gedung A',NULL,now())`, kartuRuangan),
 		fmt.Sprintf(`INSERT INTO paket_ujian VALUES ('%s','STS-INF','STS Informatika','%s','STS',60)`, kartuPaket, kartuMapel),
 		fmt.Sprintf(`INSERT INTO jadwal_ujian VALUES ('%s','%s','%s','2026-10-19','07:30','09:30','aktif','%s','%s')`, kartuJadwal, kartuPaket, kartuKelas, kartuEvent, kartuRuangan),
@@ -340,13 +340,13 @@ func TestKartuPDFEndpoint(t *testing.T) {
 	if !bytes.HasPrefix(body, []byte("%PDF")) {
 		t.Fatalf("body harus PDF")
 	}
-	for _, teks := range []string{"Budi Santoso", "Informatika", "STS Ganjil 2026/2027", "Ruang 1", "STS-GANJIL-26/2026/001"} {
+	for _, teks := range []string{"Budi Santoso", "Informatika", "PTS Ganjil 2026/2027", "Ruang 1", "PTS-GANJIL-26/2026/001"} {
 		if !bytes.Contains(body, []byte(teks)) {
 			t.Fatalf("PDF siswa sendiri tidak berisi %q", teks)
 		}
 	}
 	// Nomor peserta Siti (002) TIDAK boleh ada di kartu Budi.
-	if bytes.Contains(body, []byte("STS-GANJIL-26/2026/002")) {
+	if bytes.Contains(body, []byte("PTS-GANJIL-26/2026/002")) {
 		t.Fatalf("kartu Budi tidak boleh berisi nomor peserta Siti")
 	}
 

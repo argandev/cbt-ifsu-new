@@ -1,4 +1,4 @@
-// EventPage — CRUD Event (pengelompokan ujian: STS, SAS, USBK, UKK,
+// EventPage — CRUD Event (pengelompokan ujian: PTS, PAS, USBK, UKK,
 // Tryout, Lainnya). Milik Tim Fase 2 (Event + Ruangan + Kartu Peserta).
 // Izin ditegakkan backend (event.read / create / update / delete).
 // TanStack Query + apiClient + komponen ui Tim 1. NOL emoji di UI.
@@ -25,8 +25,8 @@ type EventItem = {
 type ListRes = { items: EventItem[]; total: number; limit: number; offset: number };
 
 const JENIS_OPTIONS = [
-  { value: "STS", label: "STS" },
-  { value: "SAS", label: "SAS" },
+  { value: "PTS", label: "PTS" },
+  { value: "PAS", label: "PAS" },
   { value: "USBK", label: "USBK" },
   { value: "UKK", label: "UKK" },
   { value: "Tryout", label: "Tryout" },
@@ -157,7 +157,7 @@ export default function EventPage() {
       <div className="flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <Typography.Title level={3} style={{ margin: 0 }}>Event Ujian</Typography.Title>
-          <Typography.Text type="secondary">Pengelompokan ujian (mis. STS Ganjil 2026/2027). Jadwal ujian dapat merujuk ke satu event.</Typography.Text>
+          <Typography.Text type="secondary">Pengelompokan ujian (mis. PTS Ganjil 2026/2027). Jadwal ujian dapat merujuk ke satu event.</Typography.Text>
         </div>
         <Space>
           <Button onClick={openAdd} type="primary">
@@ -202,8 +202,8 @@ export default function EventPage() {
             <Alert type="error" showIcon message={formError} />
           )}
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <Form.Item label="Kode *"><Input placeholder="mis. STS-GANJIL-26" value={form.kode} onChange={(e) => setForm({ ...form, kode: e.target.value })} size="large" /></Form.Item>
-            <Form.Item label="Nama *"><Input placeholder="mis. STS Ganjil 2026/2027" value={form.nama} onChange={(e) => setForm({ ...form, nama: e.target.value })} size="large" /></Form.Item>
+            <Form.Item label="Kode *"><Input placeholder="mis. PTS-GANJIL-26" value={form.kode} onChange={(e) => setForm({ ...form, kode: e.target.value })} size="large" /></Form.Item>
+            <Form.Item label="Nama *"><Input placeholder="mis. PTS Ganjil 2026/2027" value={form.nama} onChange={(e) => setForm({ ...form, nama: e.target.value })} size="large" /></Form.Item>
           </div>
           <Form.Item label="Jenis"><Select showSearch options={JENIS_OPTIONS} value={form.jenis} onChange={(v) => setForm({ ...form, jenis: (v ?? "") })} placeholder="Pilih…" filterOption={(input, opt) => (opt?.label ?? "").toLowerCase().includes(input.toLowerCase())} optionFilterProp="label" notFoundContent="Tidak ada data" style={{ width: "100%" }} size="large" /></Form.Item>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">

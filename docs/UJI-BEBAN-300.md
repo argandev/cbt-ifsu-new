@@ -15,7 +15,7 @@ server tim lain :9989; angka latensi memuat kontensi VM bersama).
 
 | Tahap | Isi |
 |---|---|
-| Setup via API | 1 jurusan, 1 kelas, 1 mapel (produktif), 1 bank soal 10 soal PG (bobot 10), 1 paket STS (durasi 60 mnt, `acak_soal=false`, `acak_jawaban=false`, `tampil_hasil=true`), 1 jadwal aktif, 1 token 6 karakter, 300 siswa via import CSV |
+| Setup via API | 1 jurusan, 1 kelas, 1 mapel (produktif), 1 bank soal 10 soal PG (bobot 10), 1 paket PTS (durasi 60 mnt, `acak_soal=false`, `acak_jawaban=false`, `tampil_hasil=true`), 1 jadwal aktif, 1 token 6 karakter, 300 siswa via import CSV |
 | Import | CSV dipecah **3 batch × 100 siswa** (alasan: BUG-02 — satu import 300 siswa > WriteTimeout 30 dtk) |
 | Aktivasi | Per siswa: `ganti-password` (NISN → password baru) + login. Konkurensi 30. Pass pemulihan: bila pass 1 gagal, coba login dengan password baru dulu (menangani commit-tanpa-respons, pola BUG-02) |
 | Fase ujian | **300 goroutine serentak**, tiap siswa: `mulai` (token) → `GET attempt` → 10× `jawaban` (autosave, jawaban bergantian benar/salah agar nilai bervariasi) → `submit` |

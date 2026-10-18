@@ -464,7 +464,7 @@ func main() {
 
 	stCode, body = admin.do("setup-paket", "POST", "/api/v1/paket", map[string]any{
 		"kode": runPrefix + "-P", "nama": "Paket Beban " + runPrefix, "mapel_id": mapelID,
-		"jenis": "STS", "durasi_menit": 60, "jumlah_soal": *nSoal,
+		"jenis": "PTS", "durasi_menit": 60, "jumlah_soal": *nSoal,
 		"acak_soal": false, "acak_jawaban": false, "tampil_hasil": true,
 	}, true)
 	must(stCode == 201, "buat paket: %d %v", stCode, body)

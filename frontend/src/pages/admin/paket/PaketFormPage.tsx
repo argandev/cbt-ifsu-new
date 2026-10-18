@@ -24,7 +24,7 @@ interface Mapel {
   nama: string;
 }
 
-const JENIS = ["STS", "SAS", "USBK", "UKK", "Tryout"];
+const JENIS = ["PTS", "PAS", "USBK", "UKK", "Tryout"];
 
 interface PaketFormPageProps {
   mode: "buat" | "ubah";

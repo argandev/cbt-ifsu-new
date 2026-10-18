@@ -195,10 +195,10 @@ func main() {
 		soalUraian = getStr(body, "data", "id")
 		return nil
 	})
-	run("Buat paket (STS, tampil_hasil=true agar nilai teruji)", func() error {
+	run("Buat paket (PTS, tampil_hasil=true agar nilai teruji)", func() error {
 		st, body := admin.do("POST", "/api/v1/paket", map[string]any{
 			"kode": prefix + "-P", "nama": "Paket QA " + prefix, "mapel_id": mapelID,
-			"jenis": "STS", "durasi_menit": 60, "jumlah_soal": 2,
+			"jenis": "PTS", "durasi_menit": 60, "jumlah_soal": 2,
 			"acak_soal": false, "acak_jawaban": false, "tampil_hasil": true,
 		}, true)
 		if st != 201 {
