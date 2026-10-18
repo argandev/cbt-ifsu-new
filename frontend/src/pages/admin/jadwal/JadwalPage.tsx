@@ -309,12 +309,12 @@ export default function JadwalPage() {
                         : "Belum dicek"}
                     </>) }, { key: "col6", title: "Aksi", render: (_: unknown, j: any) => (<>
                       <div className="flex flex-wrap gap-1">
-                        <a
-                          href={`/monitor/${j.id}`}
+                        <Link
+                          to={`/monitor/${j.id}`}
                           className="flex min-h-[44px] items-center gap-1 rounded-lg border border-anbk px-2 text-sm font-semibold text-anbk"
                         >
                           <MonitorIcon size={15} /> Monitor
-                        </a>
+                        </Link>
                         {/* proxy: tidak ada permission bernama untuk token di backend;
                             jadwal.pause dipakai sebagai proxy gate Token. */}
                         {hasPermission("jadwal.pause") && (

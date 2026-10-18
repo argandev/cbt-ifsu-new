@@ -3,17 +3,24 @@
 // Audit log TIDAK PERNAH diubah/dihapus lewat API: hanya ada Catat (INSERT)
 // dan GET daftar. Kontrak kolom tabel audit_log (migrasi 0001, Tim 1):
 // id, actor_id, aksi, entitas, entitas_id, detail (jsonb), ip, created_at.
+//
+// Struktur layer (hasil refactor arsitektur):
+//   - audit.go:      API publik paket (Catat, CurrentUser, HasPermission,
+//     konstanta context) — dipakai banyak paket lain,
+//     signature TIDAK BOLEH berubah.
+//   - handler.go:    Echo handler + Register (endpoint GET /api/v1/audit)
+//   - service.go:    logika baca audit log
+//   - repository.go: SQL baca audit_log
+//   - platform:      envelope JSON (menggantikan helper lokal)
+//
+// Perilaku (route, status, bentuk JSON, pesan error) IDENTIK dengan
+// sebelum refactor.
 package audit
 
 import (
 	"context"
 	"encoding/json"
-	"net/http"
-	"strconv"
 	"strings"
-
-	"cbt-smk-v2/backend/db"
-	"cbt-smk-v2/backend/internal/config"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v5"
@@ -91,86 +98,4 @@ func HasPermission(c *echo.Context, perm string) bool {
 		}
 	}
 	return false
-}
-
-func writeError(c *echo.Context, status int, code, message string) error {
-	return c.JSON(status, map[string]any{
-		"error": map[string]any{"code": code, "message": message},
-	})
-}
-
-func writeOK(c *echo.Context, data any) error {
-	return c.JSON(http.StatusOK, map[string]any{"data": data})
-}
-
-func strPtr(s string) any {
-	if strings.TrimSpace(s) == "" {
-		return nil
-	}
-	return s
-}
-
-// Register mendaftarkan endpoint audit log.
-//
-//	GET /api/v1/audit?aksi=&entitas=&actor_id=&limit=&offset=
-func Register(e *echo.Echo, pool *pgxpool.Pool, q *db.Queries, cfg *config.Config) {
-	_ = q
-	_ = cfg
-
-	e.GET("/api/v1/audit", func(c *echo.Context) error {
-		if !HasPermission(c, "audit.read") {
-			return writeError(c, http.StatusForbidden, "forbidden", "Tidak punya izin melihat audit log.")
-		}
-		limit, err := strconv.Atoi(c.QueryParam("limit"))
-		if err != nil || limit <= 0 {
-			limit = 50
-		}
-		if limit > 200 {
-			limit = 200
-		}
-		offset, err := strconv.Atoi(c.QueryParam("offset"))
-		if err != nil || offset < 0 {
-			offset = 0
-		}
-		aksi := c.QueryParam("aksi")
-		entitas := c.QueryParam("entitas")
-		actorID := c.QueryParam("actor_id")
-
-		rows, err := pool.Query(c.Request().Context(),
-			`SELECT id, actor_id, aksi, entitas, entitas_id, detail, ip, created_at
-			 FROM audit_log
-			 WHERE ($1::text IS NULL OR aksi = $1)
-			   AND ($2::text IS NULL OR entitas = $2)
-			   AND ($3::uuid IS NULL OR actor_id = $3)
-			 ORDER BY created_at DESC
-			 LIMIT $4 OFFSET $5`,
-			strPtr(aksi), strPtr(entitas), strPtr(actorID), limit, offset)
-		if err != nil {
-			return writeError(c, http.StatusInternalServerError, "internal_error", "Gagal membaca audit log.")
-		}
-		defer rows.Close()
-
-		items := []map[string]any{}
-		for rows.Next() {
-			var id, aksiV, entitasV string
-			var actorIDV, entitasIDV, ipV *string
-			var detail json.RawMessage
-			var createdAt any
-			if err := rows.Scan(&id, &actorIDV, &aksiV, &entitasV, &entitasIDV, &detail, &ipV, &createdAt); err != nil {
-				return writeError(c, http.StatusInternalServerError, "internal_error", "Gagal membaca audit log.")
-			}
-			var detailAny any
-			if len(detail) > 0 {
-				_ = json.Unmarshal(detail, &detailAny)
-			}
-			items = append(items, map[string]any{
-				"id": id, "actor_id": actorIDV, "aksi": aksiV, "entitas": entitasV,
-				"entitas_id": entitasIDV, "detail": detailAny, "ip": ipV, "created_at": createdAt,
-			})
-		}
-		if err := rows.Err(); err != nil {
-			return writeError(c, http.StatusInternalServerError, "internal_error", "Gagal membaca audit log.")
-		}
-		return writeOK(c, map[string]any{"items": items, "limit": limit, "offset": offset})
-	})
 }

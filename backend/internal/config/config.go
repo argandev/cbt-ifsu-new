@@ -47,6 +47,11 @@ type Config struct {
 	// AdminEmail / AdminPassword hanya dipakai saat AdminBootstrap true.
 	AdminEmail    string
 	AdminPassword string
+	// StorageDir adalah direktori akar penyimpanan berkas (upload UKK,
+	// gambar soal). Dari STORAGE_DIR, default "storage" (relatif terhadap
+	// working directory proses). Di produksi set ke path absolut yang
+	// writable, mis. /var/lib/cbt-smk-v2/storage.
+	StorageDir string
 }
 
 // IsProd melaporkan apakah aplikasi berjalan dalam mode produksi.
@@ -65,6 +70,7 @@ func Load() (*Config, error) {
 		AdminBootstrap: os.Getenv("ADMIN_BOOTSTRAP") == "true" || os.Getenv("ADMIN_BOOTSTRAP") == "1",
 		AdminEmail:     os.Getenv("ADMIN_EMAIL"),
 		AdminPassword:  os.Getenv("ADMIN_PASSWORD"),
+		StorageDir:     firstNonEmpty(os.Getenv("STORAGE_DIR"), "storage"),
 	}
 	cfg.DBURL = os.Getenv("DATABASE_URL")
 	cfg.DatabaseURL = cfg.DBURL

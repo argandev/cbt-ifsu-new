@@ -58,6 +58,7 @@ import {
   X,
 } from "lucide-react";
 import { TIPE_SOAL } from "../../../lib/tipeSoal";
+import { Link } from "react-router-dom";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 const MAKS_UKURAN = 5 * 1024 * 1024; // 5 MB (keputusan user).
@@ -691,9 +692,9 @@ export default function ImportSoalPanel({ bankId, terkunci, onImported, onTutup 
           >
             Download Template Word
           </Button>
-          <Button href={PANDUAN_URL} icon={<BookOpen size={16} aria-hidden />}>
+          <Link to={PANDUAN_URL}><Button icon={<BookOpen size={16} aria-hidden />}>
             Lihat Panduan
-          </Button>
+          </Button></Link>
         </div>
         <p className="text-xs text-muted">
           Isi hanya sesuai template. Jangan mengganti nama sheet (Excel) / label soal (Word). Kunci ditulis sesuai
@@ -985,9 +986,9 @@ export default function ImportSoalPanel({ bankId, terkunci, onImported, onTutup 
             <p className="text-sm text-muted">Tidak ada soal yang tersimpan.</p>
           )}
           <div className="flex flex-col gap-2 sm:flex-row">
-            <Button href="/adm/bank-soal" type="primary">
+            <Link to="/adm/bank-soal"><Button type="primary">
               Kembali ke bank soal
-            </Button>
+            </Button></Link>
             <Button
               type="default"
               onClick={() => {

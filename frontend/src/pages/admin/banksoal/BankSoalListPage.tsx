@@ -31,9 +31,9 @@ export default function BankSoalListPage() {
           </Typography.Text>
         </div>
         {hasPermission("banksoal.create") && (
-          <Button href="/adm/bank-soal/baru" type="primary" icon={<Plus size={16} />}>
+          <Link to="/adm/bank-soal/baru"><Button type="primary" icon={<Plus size={16} />}>
             Buat Bank Soal
-          </Button>
+          </Button></Link>
         )}
       </div>
 

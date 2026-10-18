@@ -233,12 +233,12 @@ export default function MonitorPage() {
         <ul className="space-y-2">
           {(daftarJadwalQuery.data?.items ?? []).map((j) => (
             <li key={j.id}>
-              <a
-                href={`/monitor/${j.id}`}
+              <Link
+                to={`/monitor/${j.id}`}
                 className="block rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium text-anbk hover:bg-primary-light"
               >
                 {j.paket_nama ?? "Paket"} · {j.kelas_nama ?? ""} · {formatTanggal(j.tanggal)} {formatJam(j.jam_mulai)}–{formatJam(j.jam_selesai)} WIB · {j.status}
-              </a>
+              </Link>
             </li>
           ))}
         </ul>

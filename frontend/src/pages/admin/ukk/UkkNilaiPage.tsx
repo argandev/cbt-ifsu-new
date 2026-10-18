@@ -173,9 +173,11 @@ export default function UkkNilaiPage() {
           <Typography.Text type="secondary">{`${ukk.nama} — Teori 40% + Praktik 60%. Praktik = Proses 30% + Produk 50% + Sikap 20%. Lulus ≥ 70. Nilai akhir, lulus, dan predikat dihitung server saat simpan.`}</Typography.Text>
         </div>
         <Space>
-          <Button href={`/adm/ukk/${id}`} icon={<ArrowLeft size={16} />}>
-            Kembali ke Detail UKK
-          </Button>
+          <Link to={`/adm/ukk/${id}`}>
+            <Button icon={<ArrowLeft size={16} />}>
+              Kembali ke Detail UKK
+            </Button>
+          </Link>
         </Space>
       </div>
       {ukk.status === "selesai" ? (

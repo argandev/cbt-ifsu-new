@@ -76,7 +76,7 @@ export default function PanduanImportPage() {
           <Typography.Text type="secondary">Cara memasukkan banyak soal sekaligus lewat file Excel (.xlsx) atau Word (.docx). Panduan lengkap untuk guru ada di dokumen PANDUAN-IMPORT-SOAL.md — halaman ini adalah ringkasannya.</Typography.Text>
         </div>
         <Space>
-          <Button href="/adm/bank-soal">Kembali ke Bank Soal</Button>
+          <Link to="/adm/bank-soal"><Button>Kembali ke Bank Soal</Button></Link>
         </Space>
       </div>
 

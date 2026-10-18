@@ -176,9 +176,9 @@ export default function UkkDetailPage() {
             <Button htmlType="submit" disabled={!statusBaru} loading={statusMutation.isPending} type="primary">
               Simpan Status
             </Button>
-            <Button href={`/adm/ukk/${id}/nilai`} type="primary" icon={<PenLine size={16} />}>
+            <Link to={`/adm/ukk/${id}/nilai`}><Button type="primary" icon={<PenLine size={16} />}>
               Input Nilai
-            </Button>
+            </Button></Link>
           </Form>
           <p className="text-xs text-muted">
             Nilai ditolak bila UKK sudah selesai, kecuali diubah oleh admin (dicatat di audit log).

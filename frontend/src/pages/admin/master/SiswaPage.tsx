@@ -182,9 +182,9 @@ export default function SiswaPage() {
         <Space wrap>
           <>
             {hasPermission("master.siswa.import") && (
-              <Button href="/adm/master/siswa/import">
+              <Link to="/adm/master/siswa/import"><Button>
                 Import CSV
-              </Button>
+              </Button></Link>
             )}
             {hasPermission("master.siswa.create") && (
               <Button onClick={openAdd} type="primary">

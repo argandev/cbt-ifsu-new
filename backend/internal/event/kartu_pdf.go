@@ -23,9 +23,9 @@ import (
 	"net/http"
 	"sort"
 	"strings"
-	"time"
 
 	"cbt-smk-v2/backend/internal/audit"
+	"cbt-smk-v2/backend/internal/platform"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -147,60 +147,6 @@ func namaEventGabungan(jadwal []kartuPDFJadwal) string {
 // ---------------------------------------------------------------------------
 // Helper teks / tanggal.
 // ---------------------------------------------------------------------------
-
-// kartuSanitize membersihkan teks untuk font inti Helvetica (Latin-1).
-// Tanda baca di luar Latin-1 (en dash, kutip lengkung, elipsis, dst.)
-// diganti padanan ASCII; rune di luar Latin-1 -> '?'. Karakter Latin-1
-// (mis. e aksen) dibiarkan apa adanya — gofpdf menerjemahkan UTF-8 ke
-// Latin-1 untuk font inti.
-func kartuSanitize(s string) string {
-	s = strings.NewReplacer(
-		"–", "-", "—", "-", "‐", "-",
-		"“", `"`, "”", `"`, "„", `"`,
-		"‘", "'", "’", "'", "‚", "'",
-		"…", "...", " ", " ", "•", "-", "·", "-",
-	).Replace(s)
-	var b strings.Builder
-	b.Grow(len(s))
-	for _, r := range s {
-		switch {
-		case r == '\n' || r == '\t':
-			b.WriteByte(' ')
-		case r < 32 || r > 255:
-			b.WriteByte('?')
-		default:
-			b.WriteRune(r)
-		}
-	}
-	return b.String()
-}
-
-var kartuNamaBulan = []string{"", "Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"}
-
-// formatTanggalKartu: "2026-10-17" -> "17 Okt 2026". Input yang gagal
-// di-parse dikembalikan apa adanya (jangan pernah kosongkan tanggal).
-func formatTanggalKartu(tanggal string) string {
-	t, err := time.Parse("2006-01-02", strings.TrimSpace(tanggal))
-	if err != nil {
-		return tanggal
-	}
-	return fmt.Sprintf("%d %s %d", t.Day(), kartuNamaBulan[int(t.Month())], t.Year())
-}
-
-// namaFileKartuPDF: "kartu-peserta-<nisn>.pdf"; NISN dibersihkan ke
-// karakter aman nama file.
-func namaFileKartuPDF(nisn string) string {
-	var b strings.Builder
-	for _, r := range strings.TrimSpace(nisn) {
-		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_' {
-			b.WriteRune(r)
-		}
-	}
-	if b.Len() == 0 {
-		return "kartu-peserta.pdf"
-	}
-	return "kartu-peserta-" + b.String() + ".pdf"
-}
 
 // potongTeks memotong teks agar muat di lebar kolom (dengan "...").
 func potongTeks(pdf *gofpdf.Fpdf, teks string, lebar float64) string {
@@ -664,34 +610,34 @@ func handleKartuSiswaPDF(pool *pgxpool.Pool) echo.HandlerFunc {
 	return func(c *echo.Context) error {
 		uid, role, _, _, ok := audit.CurrentUser(c)
 		if !ok {
-			return writeError(c, http.StatusUnauthorized, "unauthenticated", "Harus login dulu.")
+			return platform.WriteError(c, http.StatusUnauthorized, "unauthenticated", "Harus login dulu.")
 		}
 		ctx := c.Request().Context()
 		s, found, err := loadSiswaKartu(ctx, pool, c.Param("siswaId"))
 		if err != nil {
-			return writeError(c, http.StatusInternalServerError, "internal_error", "Gagal membaca kartu peserta.")
+			return platform.WriteError(c, http.StatusInternalServerError, "internal_error", "Gagal membaca kartu peserta.")
 		}
 		if !found {
-			return writeError(c, http.StatusNotFound, "not_found", "Kartu peserta tidak ditemukan.")
+			return platform.WriteError(c, http.StatusNotFound, "not_found", "Kartu peserta tidak ditemukan.")
 		}
 		if role == "siswa" {
 			milikSendiri := (s.UserID != nil && *s.UserID == uid) || s.ID == uid
 			if !milikSendiri {
-				return writeError(c, http.StatusNotFound, "not_found", "Kartu peserta tidak ditemukan.")
+				return platform.WriteError(c, http.StatusNotFound, "not_found", "Kartu peserta tidak ditemukan.")
 			}
 		} else if _, _, ok := requireKartuStaf(c); !ok {
 			return nil
 		}
 		data, found, err := loadKartuPDFData(ctx, pool, s.ID, "")
 		if err != nil {
-			return writeError(c, http.StatusInternalServerError, "internal_error", "Gagal menyusun kartu peserta.")
+			return platform.WriteError(c, http.StatusInternalServerError, "internal_error", "Gagal menyusun kartu peserta.")
 		}
 		if !found {
-			return writeError(c, http.StatusNotFound, "not_found", "Kartu peserta tidak ditemukan.")
+			return platform.WriteError(c, http.StatusNotFound, "not_found", "Kartu peserta tidak ditemukan.")
 		}
 		pdfBytes, err := RenderKartuPDF(*data)
 		if err != nil {
-			return writeError(c, http.StatusInternalServerError, "internal_error", "Gagal membuat PDF kartu peserta.")
+			return platform.WriteError(c, http.StatusInternalServerError, "internal_error", "Gagal membuat PDF kartu peserta.")
 		}
 		c.Response().Header().Set("Content-Type", "application/pdf")
 		c.Response().Header().Set("Content-Disposition",
@@ -711,45 +657,45 @@ func handleKartuBulkPDF(pool *pgxpool.Pool) echo.HandlerFunc {
 		kelasID := strings.TrimSpace(c.QueryParam("kelas_id"))
 		eventID := strings.TrimSpace(c.QueryParam("event_id"))
 		if kelasID != "" && !isValidUUID(kelasID) {
-			return writeError(c, http.StatusBadRequest, "validation_error", "kelas_id harus UUID yang valid.")
+			return platform.WriteError(c, http.StatusBadRequest, "validation_error", "kelas_id harus UUID yang valid.")
 		}
 		if eventID != "" && !isValidUUID(eventID) {
-			return writeError(c, http.StatusBadRequest, "validation_error", "event_id harus UUID yang valid.")
+			return platform.WriteError(c, http.StatusBadRequest, "validation_error", "event_id harus UUID yang valid.")
 		}
 		if kelasID != "" {
 			var ada int
 			if err := pool.QueryRow(ctx, `SELECT COUNT(*) FROM kelas WHERE id = $1`, kelasID).Scan(&ada); err != nil {
-				return writeError(c, http.StatusInternalServerError, "internal_error", "Gagal memeriksa kelas.")
+				return platform.WriteError(c, http.StatusInternalServerError, "internal_error", "Gagal memeriksa kelas.")
 			}
 			if ada == 0 {
-				return writeError(c, http.StatusNotFound, "not_found", "Kelas tidak ditemukan.")
+				return platform.WriteError(c, http.StatusNotFound, "not_found", "Kelas tidak ditemukan.")
 			}
 		}
 		if eventID != "" {
 			if _, found, err := loadEvent(ctx, pool, eventID); err != nil {
-				return writeError(c, http.StatusInternalServerError, "internal_error", "Gagal memeriksa event.")
+				return platform.WriteError(c, http.StatusInternalServerError, "internal_error", "Gagal memeriksa event.")
 			} else if !found {
-				return writeError(c, http.StatusNotFound, "not_found", "Event tidak ditemukan.")
+				return platform.WriteError(c, http.StatusNotFound, "not_found", "Event tidak ditemukan.")
 			}
 		}
 		cards, err := loadKartuBulkPDFData(ctx, pool, kelasID, eventID)
 		if err != nil {
 			if errors.Is(err, errKartuTerlaluBanyak) {
-				return writeError(c, http.StatusBadRequest, "too_many_siswa",
+				return platform.WriteError(c, http.StatusBadRequest, "too_many_siswa",
 					fmt.Sprintf("Jumlah siswa melebihi batas %d — gunakan filter kelas_id / event_id.", kartuPDFMaksSiswaBulk))
 			}
-			return writeError(c, http.StatusInternalServerError, "internal_error", "Gagal menyusun kartu peserta.")
+			return platform.WriteError(c, http.StatusInternalServerError, "internal_error", "Gagal menyusun kartu peserta.")
 		}
 		if len(cards) == 0 {
-			return writeError(c, http.StatusNotFound, "not_found", "Tidak ada kartu peserta untuk filter tersebut.")
+			return platform.WriteError(c, http.StatusNotFound, "not_found", "Tidak ada kartu peserta untuk filter tersebut.")
 		}
 		pdfBytes, err := RenderKartuBulkPDF(cards)
 		if err != nil {
 			if errors.Is(err, errKartuTerlaluBanyak) {
-				return writeError(c, http.StatusBadRequest, "too_many_siswa",
+				return platform.WriteError(c, http.StatusBadRequest, "too_many_siswa",
 					fmt.Sprintf("Jumlah siswa melebihi batas %d — gunakan filter kelas_id / event_id.", kartuPDFMaksSiswaBulk))
 			}
-			return writeError(c, http.StatusInternalServerError, "internal_error", "Gagal membuat PDF kartu peserta.")
+			return platform.WriteError(c, http.StatusInternalServerError, "internal_error", "Gagal membuat PDF kartu peserta.")
 		}
 		c.Response().Header().Set("Content-Type", "application/pdf")
 		c.Response().Header().Set("Content-Disposition", `attachment; filename="kartu-peserta-gabungan.pdf"`)

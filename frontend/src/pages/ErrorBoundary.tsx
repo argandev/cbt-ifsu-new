@@ -6,6 +6,7 @@
 // Migrasi Tim Layout: markup rakitan -> antd Result (status error). Teks tidak berubah.
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { Button, Result } from "antd";
+import { Link } from "react-router-dom";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -45,9 +46,9 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
               <Button key="reload" onClick={this.handleReload} type="primary">
                 Muat Ulang
               </Button>,
-              <Button key="home" href="/">
+              <Link to="/"><Button key="home">
                 Kembali ke Beranda
-              </Button>,
+              </Button></Link>,
             ]}
           />
         </div>

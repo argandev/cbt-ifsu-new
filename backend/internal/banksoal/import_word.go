@@ -201,6 +201,8 @@ import (
 	"strconv"
 	"strings"
 
+	"cbt-smk-v2/backend/internal/platform"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v5"
 )
@@ -240,7 +242,7 @@ func RegisterImportWord(e *echo.Echo, pool *pgxpool.Pool) {
 		}
 		data, err := buildTemplateDocx()
 		if err != nil {
-			return writeError(c, http.StatusInternalServerError, "internal_error", "Gagal membuat template Word.")
+			return platform.WriteError(c, http.StatusInternalServerError, "internal_error", "Gagal membuat template Word.")
 		}
 		c.Response().Header().Set("Content-Disposition", `attachment; filename="template-import-soal-cbt-smk-v2.docx"`)
 		return c.Blob(http.StatusOK, docxContentType, data)

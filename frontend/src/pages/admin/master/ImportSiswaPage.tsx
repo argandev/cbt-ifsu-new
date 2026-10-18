@@ -72,9 +72,9 @@ export default function ImportSiswaPage() {
           <Typography.Text type="secondary">Import siswa massal dari file CSV. Baris yang gagal dilewati dan dilaporkan.</Typography.Text>
         </div>
         <Space>
-          <Button href="/adm/master/siswa">
+          <Link to="/adm/master/siswa"><Button>
             Kembali ke Daftar Siswa
-          </Button>
+          </Button></Link>
         </Space>
       </div>
       <p className="text-sm text-muted">

@@ -82,7 +82,7 @@ export default function BeritaAcaraPage() {
             <Typography.Text type="secondary">Data diambil dari API; halaman ini siap cetak (Print menghasilkan dokumen print-friendly).</Typography.Text>
           </div>
           <Space>
-            <Button href="/adm/rekap">Kembali ke Rekap</Button>
+            <Link to="/adm/rekap"><Button>Kembali ke Rekap</Button></Link>
           </Space>
         </div>
       </div>

@@ -126,7 +126,7 @@ export default function BankSoalFormPage() {
               {simpanMutation.isPending ? "Menyimpan…" : "Simpan"}
             </Button>
           )}
-          <Button href="/adm/bank-soal">Batal</Button>
+          <Link to="/adm/bank-soal"><Button>Batal</Button></Link>
         </div>
       </Form>
       </Card>

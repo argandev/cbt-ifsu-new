@@ -185,9 +185,9 @@ export default function RekapPage() {
           <Button onClick={() => void rekapQuery.refetch()} type="default">
             <RefreshCw size={16} /> Muat Ulang
           </Button>
-          <Button href={`/adm/rekap/${jadwalId}/berita-acara`} icon={<FileText size={16} />}>
+          <Link to={`/adm/rekap/${jadwalId}/berita-acara`}><Button icon={<FileText size={16} />}>
             Berita Acara
-          </Button>
+          </Button></Link>
         </div>
       )}
 

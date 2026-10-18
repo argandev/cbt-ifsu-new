@@ -162,9 +162,9 @@ export default function BankSoalDetailPage() {
             </div>
             <div className="flex flex-wrap gap-2">
               {hasPermission("banksoal.update") && (
-                <Button href={`/adm/bank-soal/${bank.id}/ubah`}>
+                <Link to={`/adm/bank-soal/${bank.id}/ubah`}><Button>
                   <Pencil size={14} /> Ubah Bank
-                </Button>
+                </Button></Link>
               )}
               {hasPermission("banksoal.lock") && (
                 <Button loading={lockMutation.isPending} onClick={() => {

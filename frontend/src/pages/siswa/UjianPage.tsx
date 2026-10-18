@@ -27,6 +27,7 @@ import NavigasiSoal from "../../components/exam/NavigasiSoal";
 import SoalRenderer from "../../components/exam/SoalRenderer";
 import RichContent from "../../components/soal/RichContent";
 import BannerPeringatan from "../../components/exam/BannerPeringatan";
+import { Link } from "react-router-dom";
 
 interface JadwalAktif {
   jadwal_id: string;
@@ -353,12 +354,12 @@ export default function UjianPage() {
               </p>
             )}
             <div className="mt-6 flex justify-center gap-3">
-              <Button type="primary" size="large" href={`/hasil/${attemptId}`}>
+              <Link to={`/hasil/${attemptId}`}><Button type="primary" size="large">
                 Lihat Hasil
-              </Button>
-              <Button size="large" href="/">
+              </Button></Link>
+              <Link to="/"><Button size="large">
                 Kembali ke Beranda
-              </Button>
+              </Button></Link>
             </div>
           </div>
         </Card>

@@ -58,6 +58,7 @@ import (
 	"strings"
 
 	"cbt-smk-v2/backend/internal/audit"
+	"cbt-smk-v2/backend/internal/platform"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v5"
@@ -87,7 +88,7 @@ func RegisterImportExcel(e *echo.Echo, pool *pgxpool.Pool) {
 		}
 		data, err := buildTemplateXLSX()
 		if err != nil {
-			return writeError(c, http.StatusInternalServerError, "internal_error", "Gagal membuat template.")
+			return platform.WriteError(c, http.StatusInternalServerError, "internal_error", "Gagal membuat template.")
 		}
 		c.Response().Header().Set("Content-Disposition",
 			`attachment; filename="template-import-soal-cbt-smk-v2.xlsx"`)
@@ -107,17 +108,17 @@ func RegisterImportExcel(e *echo.Echo, pool *pgxpool.Pool) {
 		}
 		data, format, errMsg := bacaFileImport(c)
 		if errMsg != "" {
-			return writeError(c, http.StatusBadRequest, "validation_error", errMsg)
+			return platform.WriteError(c, http.StatusBadRequest, "validation_error", errMsg)
 		}
 		bank, okBank := muatBankImport(c, pool, "", role)
 		if !okBank {
 			return nil
 		}
 		if bank.IsLocked {
-			return writeError(c, http.StatusConflict, "bank_locked", "Bank soal terkunci — import ditolak.")
+			return platform.WriteError(c, http.StatusConflict, "bank_locked", "Bank soal terkunci — import ditolak.")
 		}
 		res := parseImportFile(c.Request().Context(), pool, bank, format, data)
-		return writeOK(c, map[string]any{
+		return platform.WriteOK(c, map[string]any{
 			"bank_id": bank.ID, "total_baris": res.total,
 			"valid": len(res.valid), "error": len(res.errors),
 			"warning": len(res.warnings), "duplikat": res.duplikat,
@@ -140,30 +141,30 @@ func RegisterImportExcel(e *echo.Echo, pool *pgxpool.Pool) {
 			mode = "all_or_nothing"
 		}
 		if mode != "all_or_nothing" && mode != "skip_errors" {
-			return writeError(c, http.StatusBadRequest, "validation_error", "mode harus all_or_nothing atau skip_errors.")
+			return platform.WriteError(c, http.StatusBadRequest, "validation_error", "mode harus all_or_nothing atau skip_errors.")
 		}
 		duplikat := strings.ToLower(strings.TrimSpace(c.FormValue("duplikat")))
 		if duplikat == "" {
 			duplikat = "lewati"
 		}
 		if duplikat != "lewati" && duplikat != "simpan_ganda" {
-			return writeError(c, http.StatusBadRequest, "validation_error", "duplikat harus lewati atau simpan_ganda.")
+			return platform.WriteError(c, http.StatusBadRequest, "validation_error", "duplikat harus lewati atau simpan_ganda.")
 		}
 		data, format, errMsg := bacaFileImport(c)
 		if errMsg != "" {
-			return writeError(c, http.StatusBadRequest, "validation_error", errMsg)
+			return platform.WriteError(c, http.StatusBadRequest, "validation_error", errMsg)
 		}
 		bank, okBank := muatBankImport(c, pool, userID, role)
 		if !okBank {
 			return nil
 		}
 		if bank.IsLocked {
-			return writeError(c, http.StatusConflict, "bank_locked", "Bank soal terkunci — import ditolak.")
+			return platform.WriteError(c, http.StatusConflict, "bank_locked", "Bank soal terkunci — import ditolak.")
 		}
 		res := parseImportFile(c.Request().Context(), pool, bank, format, data)
 		errs := res.errors
 		if mode == "all_or_nothing" && len(errs) > 0 {
-			return writeOK(c, map[string]any{
+			return platform.WriteOK(c, map[string]any{
 				"sukses": 0, "gagal": len(errs), "dilewati_duplikat": 0,
 				"warnings": res.warnings, "errors": errs,
 				"mode": mode, "duplikat": duplikat, "disimpan": false,
@@ -201,7 +202,7 @@ func RegisterImportExcel(e *echo.Echo, pool *pgxpool.Pool) {
 		_ = audit.Catat(ctx, pool, userID, "banksoal.import", "bank_soal", bank.ID,
 			map[string]any{"sukses": sukses, "gagal": len(errs), "dilewati_duplikat": dilewati,
 				"mode": mode, "duplikat": duplikat, "format": format}, c.RealIP())
-		return writeOK(c, map[string]any{
+		return platform.WriteOK(c, map[string]any{
 			"sukses": sukses, "gagal": len(errs), "dilewati_duplikat": dilewati,
 			"warnings": res.warnings, "errors": errs,
 			"mode": mode, "duplikat": duplikat, "disimpan": sukses > 0,
@@ -216,16 +217,16 @@ func RegisterImportExcel(e *echo.Echo, pool *pgxpool.Pool) {
 func muatBankImport(c *echo.Context, pool *pgxpool.Pool, userID, role string) (*bankRow, bool) {
 	bankID := strings.TrimSpace(c.FormValue("bank_id"))
 	if !isValidUUID(bankID) {
-		_ = writeError(c, http.StatusBadRequest, "validation_error", "bank_id wajib UUID bank yang valid.")
+		_ = platform.WriteError(c, http.StatusBadRequest, "validation_error", "bank_id wajib UUID bank yang valid.")
 		return nil, false
 	}
 	b, found, err := loadBank(c, pool, bankID)
 	if err != nil {
-		_ = writeError(c, http.StatusInternalServerError, "internal_error", "Gagal membaca bank soal.")
+		_ = platform.WriteError(c, http.StatusInternalServerError, "internal_error", "Gagal membaca bank soal.")
 		return nil, false
 	}
 	if !found {
-		_ = writeError(c, http.StatusNotFound, "not_found", "Bank soal tidak ditemukan.")
+		_ = platform.WriteError(c, http.StatusNotFound, "not_found", "Bank soal tidak ditemukan.")
 		return nil, false
 	}
 	if !checkGuruScope(c, role, userID, b) {

@@ -1,6 +1,11 @@
 // Package ukkx adalah paket pendukung UKK (cross-check + siap di-wire
 // tim integrasi) untuk CBT SMK v2.
 //
+// Struktur layer (hasil refactor arsitektur):
+//   - rubrik.go:     logika rubrik UKK (file ini)
+//   - sertifikat.go: nomor sertifikat + syarat terbit
+//   - upload.go:     validasi berkas + path aman storage
+//
 // Paket ini berisi fungsi MURNI tanpa akses database, tanpa HTTP, dan
 // tanpa dependensi di luar standard library, sehingga bisa diuji
 // independen dari handler UKK utama (paket ukk).

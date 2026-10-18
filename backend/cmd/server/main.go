@@ -25,6 +25,7 @@ import (
 	"os"
 	"os/signal"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
@@ -206,6 +207,19 @@ func runServer() error {
 	// pesan jelas (jangan jalankan aplikasi dengan skema setengah jadi).
 	if err := migrateUp(cfg); err != nil {
 		return fmt.Errorf("migrasi gagal: %w", err)
+	}
+
+	// Siapkan direktori penyimpanan berkas (upload UKK, gambar soal).
+	// Gagal di sini TIDAK mematikan server — upload akan gagal per-request
+	// dengan pesan jelas, tapi fungsi lain tetap jalan.
+	if absStorage, err := filepath.Abs(cfg.StorageDir); err != nil {
+		log.Printf("PERINGATAN: tidak bisa menentukan path absolut STORAGE_DIR=%q: %v", cfg.StorageDir, err)
+	} else if err := os.MkdirAll(absStorage, 0o750); err != nil {
+		log.Printf("PERINGATAN: gagal menyiapkan direktori penyimpanan %s: %v. "+
+			"Upload berkas akan gagal. Cek permission direktori / set STORAGE_DIR ke path yang writable.",
+			absStorage, err)
+	} else {
+		log.Printf("Direktori penyimpanan: %s", absStorage)
 	}
 
 	// Bootstrap admin via env (opsional; hanya bila users masih kosong).
