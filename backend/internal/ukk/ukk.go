@@ -26,6 +26,11 @@
 //	PUT    /ukk/:id                               (ukk.update)
 //	DELETE /ukk/:id                               (ukk.update; tidak ada ukk.delete di seed)
 //	GET    /ukk/:id/nilai                         (ukk.read)
+//	GET    /ukk/:id/peserta                       (ukk.read; D5: daftar siswa
+//	                                              kelas UKK ini untuk dropdown
+//	                                              halaman nilai — tanpa izin
+//	                                              master, hanya field yang
+//	                                              dibutuhkan halaman nilai)
 //	POST   /ukk/:id/nilai                         (ukk.update, upsert per siswa)
 //	PUT    /ukk/:id/nilai/:nilaiId               (ukk.update)
 //	GET    /ukk/:id/berkas                        (ukk.read; siswa: hanya miliknya)
@@ -373,6 +378,7 @@ func Register(e *echo.Echo, pool *pgxpool.Pool, q *db.Queries, cfg *config.Confi
 	e.DELETE("/api/v1/ukk/:id", func(c *echo.Context) error { return deleteUkk(c, pool) })
 
 	e.GET("/api/v1/ukk/:id/nilai", func(c *echo.Context) error { return listNilai(c, pool) })
+	e.GET("/api/v1/ukk/:id/peserta", func(c *echo.Context) error { return listPeserta(c, pool) })
 	e.POST("/api/v1/ukk/:id/nilai", func(c *echo.Context) error { return upsertNilai(c, pool, "") })
 	e.PUT("/api/v1/ukk/:id/nilai/:nilaiId", func(c *echo.Context) error {
 		return upsertNilai(c, pool, c.Param("nilaiId"))
@@ -707,6 +713,58 @@ func listNilai(c *echo.Context, pool *pgxpool.Pool) error {
 	}
 	if err := rows.Err(); err != nil {
 		return writeError(c, http.StatusInternalServerError, "internal_error", "Gagal membaca nilai UKK.")
+	}
+	return writeOK(c, items)
+}
+
+// pesertaRow adalah SATU-SATUNYA data siswa yang dibutuhkan halaman
+// nilai UKK (dropdown pilih siswa). Dibatasi ke kelas UKK ini saja dan
+// HANYA field id/nama/nisn/kelas_id — bukan akses master umum: tanpa
+// filter global, tanpa NIS, tanpa user_id, tanpa tahun_masuk.
+type pesertaRow struct {
+	ID      string `json:"id"`
+	Nama    string `json:"nama"`
+	NISN    string `json:"nisn"`
+	KelasID string `json:"kelas_id"`
+}
+
+// listPeserta menangani GET /ukk/:id/peserta (izin ukk.read).
+// D5: penguji_ukk WAJIB bisa tambah nilai siswa baru. Dropdown halaman
+// nilai sebelumnya memanggil /master/siswa (izin master.siswa.read)
+// sehingga penguji_ukk 403 dan tidak bisa tambah nilai baru. Endpoint
+// khusus UKK ini memberi daftar siswa kelas UKK tersebut di bawah izin
+// ukk.* yang sudah dimiliki penguji_ukk — TANPA menambah izin master
+// apa pun dan TANPA mengubah endpoint master yang sudah ada.
+func listPeserta(c *echo.Context, pool *pgxpool.Pool) error {
+	if _, _, ok := requirePerm(c, "ukk.read"); !ok {
+		return nil
+	}
+	id := c.Param("id")
+	if !isValidUUID(id) {
+		return writeError(c, http.StatusBadRequest, "validation_error", "ID UKK tidak valid.")
+	}
+	ctx := c.Request().Context()
+	ukk, err := getUkkRow(ctx, pool, id)
+	if err != nil {
+		return writeError(c, http.StatusNotFound, "not_found", "UKK tidak ditemukan.")
+	}
+	rows, err := pool.Query(ctx,
+		`SELECT id, nama, nisn, kelas_id FROM siswa
+		 WHERE kelas_id = $1 AND is_active ORDER BY nama ASC`, ukk.KelasID)
+	if err != nil {
+		return writeError(c, http.StatusInternalServerError, "internal_error", "Gagal membaca peserta UKK.")
+	}
+	defer rows.Close()
+	items := []pesertaRow{}
+	for rows.Next() {
+		var p pesertaRow
+		if err := rows.Scan(&p.ID, &p.Nama, &p.NISN, &p.KelasID); err != nil {
+			return writeError(c, http.StatusInternalServerError, "internal_error", "Gagal membaca peserta UKK.")
+		}
+		items = append(items, p)
+	}
+	if err := rows.Err(); err != nil {
+		return writeError(c, http.StatusInternalServerError, "internal_error", "Gagal membaca peserta UKK.")
 	}
 	return writeOK(c, items)
 }

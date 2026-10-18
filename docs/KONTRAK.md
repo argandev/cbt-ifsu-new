@@ -450,6 +450,28 @@ Aturan yang mengikat (lihat juga spesifikasi UC20 di
 - **Login terakhir:** `users.terakhir_masuk` diisi saat login sukses
   (migrasi 0013); NULL = belum pernah login.
 
+### 8.8 UKK — peserta untuk halaman nilai (D5, 18 Okt 2026)
+
+| Method & Path | Permission | Keterangan |
+|---|---|---|
+| `GET /api/v1/ukk/:id/peserta` | `ukk.read` | Daftar siswa kelas UKK tersebut untuk dropdown halaman Input Nilai. Field: `id, nama, nisn, kelas_id` saja. UKK tidak ada -> 404; ID tidak valid -> 400. |
+
+Aturan yang mengikat:
+
+- Endpoint ini ADA karena penguji_ukk WAJIB bisa tambah nilai siswa
+  baru, sementara dropdown lama memanggil `/master/siswa` (izin
+  `master.siswa.read`) sehingga penguji_ukk 403. Fallback "sembunyikan
+  tambah nilai baru untuk penguji_ukk" DITOLAK user.
+- **TANPA menambah izin master apa pun** ke penguji_ukk (matriks §5.2
+  tidak berubah: penguji_ukk tetap 4 izin) dan **TANPA mengubah
+  endpoint master** yang sudah ada (`GET /master/siswa` tetap 403
+  untuk penguji_ukk).
+- Cakupan dipersempit ke kebutuhan halaman nilai: hanya siswa
+  `is_active` di `kelas_id` UKK tersebut, hanya 4 field — bukan akses
+  master umum (tanpa filter global, tanpa NIS, tanpa `user_id`, tanpa
+  `tahun_masuk`). Siswa (role `siswa`) tidak punya `ukk.read`
+  sehingga tetap 403.
+
 ---
 
 ## 9. Frontend — rute & kepemilikan halaman

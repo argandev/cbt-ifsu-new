@@ -1,18 +1,19 @@
 // MonitorPage — monitor ujian real-time (Tim 4).
 // WebSocket /ws/monitor?ticket= (ticket 30 detik) + fallback polling
 // REST tiap 5 detik bila WS gagal. Filter status, tombol pause/resume
-// jadwal, unblock peserta (wajib alasan), statistik.
+// jadwal, unblock peserta (wajib alasan), usul buka blokir oleh
+// pengawas (Modal alasan -> POST usulan-unblock), statistik.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Pause, Play, Unlock } from "lucide-react";
+import { Pause, Play, Send, Unlock } from "lucide-react";
 import { apiClient } from "../../../lib/api";
 import { useAuthStore } from "../../../store/auth";
 import { formatJam, formatTanggal } from "../../../lib/format";
 import type { MonitorSnapshot, PesertaMonitor, UsulanUnblock } from "../../../lib/exam";
 import { statusTagColor, statusTagLabel } from "../../../components/common/statusTag";
 
-import { Alert, Button, Input, Table, Tag, Breadcrumb, Space, Typography, Card, Statistic } from "antd";
+import { Alert, Button, Form, Input, Modal, Table, Tag, Breadcrumb, Space, Typography, Card, Statistic } from "antd";
 type FilterStatus = "semua" | "berjalan" | "selesai" | "diblokir";
 
 function jadwalIdDariUrl(): string {
@@ -35,7 +36,17 @@ export default function MonitorPage() {
   const [alasanPerAttempt, setAlasanPerAttempt] = useState<Record<string, string>>({});
   const [pesan, setPesan] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Usul buka blokir (pengawas): target peserta + isi Modal.
+  const [usulanTarget, setUsulanTarget] = useState<PesertaMonitor | null>(null);
+  const [usulanAlasan, setUsulanAlasan] = useState("");
+  const [usulanMengirim, setUsulanMengirim] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
+
+  // HANYA pengawas yang melihat tombol "Usul Buka Blokir": pengawas
+  // adalah satu-satunya role yang punya jadwal.usulan-unblock TANPA
+  // jadwal.unblock (proktor/admin unblock langsung, jadi tidak usul).
+  const bisaUsulUnblock =
+    hasPermission("jadwal.usulan-unblock") && !hasPermission("jadwal.unblock");
 
   const jadwalQuery = useQuery({
     queryKey: ["jadwal", jadwalId],
@@ -49,7 +60,18 @@ export default function MonitorPage() {
     refetchInterval: 10000,
   });
 
-  // Daftar jadwal — hanya untuk pemilih jadwal bila halaman dibuka tanpa :jadwalId
+  // Attempt yang sudah punya usulan menunggu -> tombol jadi
+  // "Usulan Terkirim" (backend juga menolak duplikat dengan 409).
+  const usulanMenungguAttempt = useMemo(
+    () =>
+      new Set(
+        (usulanQuery.data?.items ?? [])
+          .filter((u) => u.status === "menunggu")
+          .map((u) => u.attempt_id),
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [usulanQuery.data],
+  );
   // (sebelumnya halaman ini jalan buntu tanpa pemilih jadwal).
   const daftarJadwalQuery = useQuery({
     queryKey: ["jadwal"],
@@ -93,6 +115,8 @@ export default function MonitorPage() {
             } else if (msg.type === "jadwal_pause" || msg.type === "jadwal_resume") {
               jadwalQuery.refetch();
               muatSnapshot();
+            } else if (msg.type === "usulan_unblock") {
+              usulanQuery.refetch();
             }
           } catch {
             // Pesan non-JSON (ping) diabaikan.
@@ -164,6 +188,31 @@ export default function MonitorPage() {
       muatSnapshot();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal unblock.");
+    }
+  };
+
+  const kirimUsulanUnblock = async () => {
+    if (!usulanTarget) return;
+    const alasan = usulanAlasan.trim();
+    if (!alasan) {
+      setError("Alasan usul buka blokir wajib diisi.");
+      return;
+    }
+    setError(null);
+    setUsulanMengirim(true);
+    try {
+      await apiClient.post(`/api/v1/jadwal/${jadwalId}/usulan-unblock`, {
+        attempt_id: usulanTarget.attempt_id,
+        alasan,
+      });
+      setPesan("Usulan buka blokir terkirim — menunggu persetujuan proktor.");
+      setUsulanTarget(null);
+      setUsulanAlasan("");
+      await usulanQuery.refetch();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Gagal mengirim usulan buka blokir.");
+    } finally {
+      setUsulanMengirim(false);
     }
   };
 
@@ -293,10 +342,50 @@ export default function MonitorPage() {
                         <Unlock size={14} /> Unblock
                       </Button>
                     </div>
+                  ) : p.status === "diblokir" && bisaUsulUnblock ? (
+                    usulanMenungguAttempt.has(p.attempt_id) ? (
+                      <Button disabled type="default">
+                        Usulan Terkirim
+                      </Button>
+                    ) : (
+                      <Button onClick={() => { setUsulanTarget(p); setUsulanAlasan(""); }} type="default">
+                        <Send size={14} /> Usul Buka Blokir
+                      </Button>
+                    )
                   ) : (
                     <span className="text-muted">—</span>
                   )}
                 </>) }]} dataSource={tampil} rowKey="attempt_id" pagination={false} locale={{ emptyText: "Belum ada peserta." }} scroll={{ x: "max-content" }} />
+
+      {/* Modal usul buka blokir (pengawas) */}
+      <Modal
+        open={usulanTarget !== null}
+        onCancel={() => { setUsulanTarget(null); setUsulanAlasan(""); }}
+        title={`Usul Buka Blokir — ${usulanTarget?.nama_siswa ?? ""}`}
+        footer={null}
+        width={520}
+        destroyOnClose
+      >
+        <Form layout="vertical" onFinish={kirimUsulanUnblock}>
+          <Form.Item label="Alasan *" name="alasan" rules={[{ required: true, message: "Alasan usul buka blokir wajib diisi." }]}>
+            <Input.TextArea
+              value={usulanAlasan}
+              onChange={(e) => setUsulanAlasan(e.target.value)}
+              placeholder="mis. Siswa tidak sengaja pindah tab saat jaringan putus"
+              rows={4}
+              size="large"
+            />
+          </Form.Item>
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button onClick={() => { setUsulanTarget(null); setUsulanAlasan(""); }} type="default">
+              Batal
+            </Button>
+            <Button htmlType="submit" loading={usulanMengirim} type="primary">
+              {usulanMengirim ? "Mengirim…" : "Kirim Usulan"}
+            </Button>
+          </div>
+        </Form>
+      </Modal>
     </div>
   );
 }

@@ -33,6 +33,7 @@ import {
   DashboardOutlined,
   DatabaseOutlined,
   DownOutlined,
+  EditOutlined,
   HomeOutlined,
   IdcardOutlined,
   LogoutOutlined,
@@ -90,6 +91,12 @@ const NAV_GROUPS: NavGroup[] = [
     judul: "Hasil & Analisis",
     items: [
       { to: "/adm/rekap", label: "Rekap", icon: <BookOutlined />, perm: "rekap.read" },
+      // D6: Koreksi Esai (UC10). Gate pada koreksi.update (hanya
+      // admin/guru) — BUKAN koreksi.read: handler backend listKoreksi
+      // menolak proktor, jadi menu JANGAN tampil untuk proktor
+      // (UI ngikutin izin backend, bukan sebaliknya). Halaman
+      // KoreksiPage sendiri juga meng-guard koreksi.update.
+      { to: "/adm/koreksi", label: "Koreksi Esai", icon: <EditOutlined />, perm: "koreksi.update" },
       { to: "/adm/analisis", label: "Analisis Butir", icon: <BarChartOutlined />, perm: "analisis.read" },
       // Nilai Kompetensi memanggil GET /kompetensi/:id yang di-gate backend
       // dengan rekap.read (backend adalah sumber kebenaran) — perm

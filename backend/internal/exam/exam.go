@@ -1441,7 +1441,7 @@ func listUsulanUnblock(c *echo.Context) error {
 		        COALESCE(s.nama, '')
 		 FROM usulan_unblock u
 		 JOIN attempt a ON a.id = u.attempt_id
-		 LEFT JOIN siswa s ON s.id = a.siswa_id
+		 LEFT JOIN siswa s ON s.user_id = a.siswa_id
 		 WHERE a.jadwal_id = $1 ORDER BY u.created_at DESC`, id)
 	if err != nil {
 		return writeError(c, http.StatusInternalServerError, "internal_error", "Gagal membaca usulan unblock.")
@@ -2643,7 +2643,7 @@ func listKoreksi(c *echo.Context) error {
 		 FROM jawaban jw
 		 JOIN attempt a ON a.id = jw.attempt_id
 		 JOIN soal so ON so.id = jw.soal_id
-		 LEFT JOIN siswa s ON s.id = a.siswa_id
+		 LEFT JOIN siswa s ON s.user_id = a.siswa_id
 		 WHERE a.jadwal_id = $1
 		   AND jw.dikoreksi = FALSE
 		   AND jw.jawaban IS NOT NULL

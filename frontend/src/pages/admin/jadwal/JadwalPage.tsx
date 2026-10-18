@@ -67,15 +67,18 @@ export default function JadwalPage() {
   const paketQuery = useQuery({
     queryKey: ["paket"],
     queryFn: () => apiClient.get<{ items: Paket[] }>("/api/v1/paket"),
-    // Hanya dipakai form buat/ubah jadwal — jangan fetch bila tanpa izin buat jadwal.
-    enabled: hasPermission("jadwal.create"),
+    // Gate dengan izin ENDPOINT-nya (paket.read), bukan jadwal.create:
+    // proktor punya jadwal.create tapi tidak punya paket.read — gate lama
+    // membuatnya tetap menembak GET /paket → 403. Dropdown paket proktor
+    // tetap kosong (D2: butuh keputusan backend), tapi tidak ada lagi 403.
+    enabled: hasPermission("paket.read"),
   });
   // Daftar kelas untuk dropdown — endpoint yang sama dipakai SiswaPage.
   const kelasQuery = useQuery({
     queryKey: ["master", "kelas", "all"],
     queryFn: () => apiClient.get<{ data: Kelas[] } | Kelas[]>("/api/v1/master/kelas?per_page=100"),
-    // Hanya dipakai form buat/ubah jadwal — jangan fetch bila tanpa izin buat jadwal.
-    enabled: hasPermission("jadwal.create"),
+    // Gate dengan izin endpoint-nya (master.kelas.read).
+    enabled: hasPermission("master.kelas.read"),
   });
   const kelasList: Kelas[] = Array.isArray(kelasQuery.data)
     ? kelasQuery.data
@@ -243,7 +246,13 @@ export default function JadwalPage() {
           <Typography.Text type="secondary">Kelola jadwal ujian: buat jadwal, hasilkan token, jeda/lanjutkan, dan pantau lewat Monitor.</Typography.Text>
         </div>
         <Space>
-          {hasPermission("jadwal.create") && (
+          {/* D2-koreksi (UI-ONLY): tombol Buat Jadwal tampil hanya bila
+              punya paket.read DAN jadwal.create. Proktor punya
+              jadwal.create tapi TIDAK punya paket.read — form buat jadwal
+              butuh dropdown Paket yang endpoint-nya memang ditolak untuk
+              proktor, jadi tombolnya disembunyikan untuk proktor (bukan
+              endpointnya yang diubah). Pause/Resume/Monitor tidak diganggu. */}
+          {hasPermission("paket.read") && hasPermission("jadwal.create") && (
             <Button onClick={bukaFormBaru} type="primary">
               <Plus size={16} /> Buat Jadwal
             </Button>
@@ -283,7 +292,7 @@ export default function JadwalPage() {
             </>
           }
         >
-          {semuaJadwal.length === 0 && hasPermission("jadwal.create") ? (
+          {semuaJadwal.length === 0 && hasPermission("paket.read") && hasPermission("jadwal.create") ? (
             <Button type="primary" onClick={bukaFormBaru}>
               Buat Jadwal
             </Button>

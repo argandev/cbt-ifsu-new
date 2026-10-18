@@ -48,6 +48,29 @@ func TestHitungPoinBenarSalah(t *testing.T) {
 	}
 }
 
+func TestHitungPoinBenarSalahKunciWarisanPN(t *testing.T) {
+	// Kunci warisan {"p1":..} + jawaban array [..] disejajarkan per posisi.
+	poin, _ := grading.HitungPoin("benar_salah",
+		[]byte(`[true,true]`),
+		[]byte(`{"p1":true,"p2":true}`), 10)
+	if poin != 10 {
+		t.Fatalf("Benar-Salah pN+array semua benar: poin=%v, mau 10", poin)
+	}
+	poin, _ = grading.HitungPoin("benar_salah",
+		[]byte(`[true,false]`),
+		[]byte(`{"p1":true,"p2":true}`), 10)
+	if poin != 5 {
+		t.Fatalf("Benar-Salah pN+array 1/2: poin=%v, mau 5", poin)
+	}
+	// Map-map tetap seperti semula.
+	poin, _ = grading.HitungPoin("benar_salah",
+		[]byte(`{"p1":true,"p2":true}`),
+		[]byte(`{"p1":true,"p2":false}`), 10)
+	if poin != 5 {
+		t.Fatalf("Benar-Salah map-map 1/2: poin=%v, mau 5", poin)
+	}
+}
+
 func TestHitungPoinMenjodohkan(t *testing.T) {
 	poin, _ := grading.HitungPoin("menjodohkan",
 		[]byte(`{"k1":"r2","k2":"r1"}`),

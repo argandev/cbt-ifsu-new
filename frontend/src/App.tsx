@@ -27,6 +27,7 @@ import PaketPage from "./pages/admin/paket/PaketPage";
 import JadwalPage from "./pages/admin/jadwal/JadwalPage";
 import MonitorPage from "./pages/admin/monitor/MonitorPage";
 import RekapPage from "./pages/admin/rekap/RekapPage";
+import KoreksiPage from "./pages/admin/koreksi/KoreksiPage";
 import BeritaAcaraPage from "./pages/admin/rekap/BeritaAcaraPage";
 import AnalisisButirPage from "./pages/admin/analisis/AnalisisButirPage";
 import KompetensiPage from "./pages/admin/analisis/KompetensiPage";
@@ -188,6 +189,7 @@ export default function App() {
             Tanpa route ini, tautan tersebut jatuh ke NotFound. */}
         <Route path="monitor/:jadwalId" element={<MonitorPage />} />
         <Route path="rekap" element={<RekapPage />} />
+        <Route path="koreksi" element={<KoreksiPage />} />
         <Route path="rekap/:jadwalId/berita-acara" element={<BeritaAcaraPage />} />
         <Route path="analisis" element={<AnalisisButirPage />} />
         <Route path="kompetensi" element={<KompetensiPage />} />

@@ -171,6 +171,21 @@ func parseBoolMap(raw []byte) (map[string]bool, bool) {
 	return nil, false
 }
 
+// kunciPNLengkap true bila kunci adalah map warisan {"p1":bool,...,"pN":bool}
+// yang lengkap tanpa lubang. Dipakai untuk menyejajarkan jawaban array
+// [bool,...] dengan label p1..pN per posisi (p1=[0], p2=[1], ...).
+func kunciPNLengkap(m map[string]bool) bool {
+	if len(m) == 0 {
+		return false
+	}
+	for i := 1; i <= len(m); i++ {
+		if _, ada := m["p"+itoa(i)]; !ada {
+			return false
+		}
+	}
+	return true
+}
+
 func parseStringMap(raw []byte) (map[string]string, bool) {
 	var m map[string]string
 	if err := json.Unmarshal(raw, &m); err == nil {
@@ -500,6 +515,22 @@ func HitungPoin(tipe string, jawaban, kunci []byte, bobot int) (float64, bool) {
 		kunciMap, ok := parseBoolMap(kunci)
 		if !ok || len(kunciMap) == 0 {
 			return 0, true
+		}
+		// Kunci warisan {"p1":..,"p2":..} + jawaban array [..]: sejajarkan
+		// per posisi (p1=[0], p2=[1], ...). Tanpa cabang ini nilai selalu 0
+		// karena parseBoolMap menormalisasi array jawaban menjadi
+		// {"0","1",...} yang tidak pernah cocok dengan label p1..pN.
+		if kunciPNLengkap(kunciMap) {
+			var jwbArr []bool
+			if err := json.Unmarshal(jawaban, &jwbArr); err == nil && len(jwbArr) > 0 {
+				benar := 0
+				for i := 1; i <= len(kunciMap); i++ {
+					if i-1 < len(jwbArr) && jwbArr[i-1] == kunciMap["p"+itoa(i)] {
+						benar++
+					}
+				}
+				return b * float64(benar) / float64(len(kunciMap)), true
+			}
 		}
 		jwbMap, ok := parseBoolMap(jawaban)
 		if !ok {

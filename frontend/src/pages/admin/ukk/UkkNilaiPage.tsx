@@ -69,13 +69,14 @@ export default function UkkNilaiPage() {
     queryFn: () => apiClient.get<UkkNilai[]>(`/ukk/${id}/nilai`),
     enabled: id !== "",
   });
+  // D5: daftar siswa untuk dropdown dari endpoint khusus UKK
+  // GET /ukk/:id/peserta (izin ukk.read) — bukan /master/siswa (izin
+  // master.siswa.read) — agar penguji_ukk bisa tambah nilai siswa baru
+  // tanpa 403, tanpa izin master tambahan.
   const siswaQuery = useQuery({
-    queryKey: ["ukk-siswa", ukkQuery.data?.kelas_id],
-    queryFn: () =>
-      apiClient.get<MasterOption[]>(
-        `/master/siswa?per_page=100&kelas_id=${encodeURIComponent(ukkQuery.data?.kelas_id ?? "")}`,
-      ),
-    enabled: Boolean(ukkQuery.data?.kelas_id),
+    queryKey: ["ukk-peserta", id],
+    queryFn: () => apiClient.get<MasterOption[]>(`/ukk/${id}/peserta`),
+    enabled: id !== "",
   });
 
   const nilaiRows = nilaiQuery.data ?? [];
