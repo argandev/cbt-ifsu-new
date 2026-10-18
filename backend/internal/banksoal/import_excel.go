@@ -725,7 +725,7 @@ func tandaiDuplikat(ctx context.Context, pool *pgxpool.Pool, bankID string, rows
 		for qrows.Next() {
 			var id, p string
 			if err := qrows.Scan(&id, &p); err == nil {
-				n := NormalisasiIsian(p)
+				n := platform.NormalisasiIsian(p)
 				if _, ok := sudahAda[n]; !ok {
 					sudahAda[n] = id
 				}
@@ -736,7 +736,7 @@ func tandaiDuplikat(ctx context.Context, pool *pgxpool.Pool, bankID string, rows
 	var detail []map[string]any
 	dup := 0
 	for i := range rows {
-		n := NormalisasiIsian(rows[i].pertanyaan)
+		n := platform.NormalisasiIsian(rows[i].pertanyaan)
 		flag := false
 		if pertama, ok := terlihat[n]; ok {
 			rows[i].duplikat = true

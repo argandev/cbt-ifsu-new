@@ -12,7 +12,6 @@ import (
 	"regexp"
 	"strings"
 
-	"cbt-smk-v2/backend/internal/audit"
 	"cbt-smk-v2/backend/internal/platform"
 
 	"github.com/google/uuid"
@@ -82,32 +81,29 @@ var namaFileAman = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9
 
 // --- Service ----------------------------------------------------------------
 
-// RequestActor adalah identitas pemanggil untuk audit log.
-// Dibangun handler dari echo.Context agar service bebas dari HTTP.
-type RequestActor struct {
-	UserID string
-	RealIP string
-}
 
 // Service adalah lapisan logika bisnis paket upload.
+// repository adalah kontrak penyimpanan yang dipakai Service.
+// (DIP: Service bergantung pada abstraksi, bukan *Repository konkrit.)
+type repository interface {
+	Baca(nama string) ([]byte, error)
+	Simpan(diskName string, isi []byte) (string, error)
+}
+
 type Service struct {
-	repo *Repository
+	repo repository
 	pool *pgxpool.Pool
 }
 
 // NewService membuat Service.
-func NewService(repo *Repository, pool *pgxpool.Pool) *Service {
+func NewService(repo repository, pool *pgxpool.Pool) *Service {
 	return &Service{repo: repo, pool: pool}
 }
 
-// catat menulis audit log. (Dulu: audit.Catat di handler.)
-func (s *Service) catat(ctx context.Context, actor RequestActor, aksi, entitas, entitasID string, detail any) {
-	_ = audit.Catat(ctx, s.pool, actor.UserID, aksi, entitas, entitasID, detail, actor.RealIP)
-}
 
 // Simpan memvalidasi + menyimpan satu file gambar upload.
 // Mengembalikan payload respons 201. (Dulu: uploadGambar.)
-func (s *Service) Simpan(ctx context.Context, actor RequestActor, fileHeader *multipart.FileHeader) (map[string]any, *platform.AppError) {
+func (s *Service) Simpan(ctx context.Context, actor platform.RequestActor, fileHeader *multipart.FileHeader) (map[string]any, *platform.AppError) {
 	if fileHeader.Size <= 0 {
 		return nil, platform.ErrBadRequest("validation_error", "File kosong.")
 	}
@@ -149,7 +145,7 @@ func (s *Service) Simpan(ctx context.Context, actor RequestActor, fileHeader *mu
 	}
 
 	url := "/api/v1/upload/image/" + diskName
-	s.catat(ctx, actor, "upload.image", "upload_image", diskName,
+	platform.Catat(ctx, s.pool, actor, "upload.image", "upload_image", diskName,
 		map[string]any{"sha256": hash, "ukuran": len(isi), "content_type": tipe.contentType, "url": url})
 	return map[string]any{
 		"url":          url,

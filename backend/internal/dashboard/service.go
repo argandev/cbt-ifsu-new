@@ -11,13 +11,19 @@ import (
 // --- Service ----------------------------------------------------------------
 
 // Service adalah lapisan logika bisnis paket dashboard.
+// repository adalah kontrak penyimpanan yang dipakai Service.
+// (DIP: Service bergantung pada abstraksi, bukan *Repository konkrit.)
+type repository interface {
+	Count(ctx context.Context, tabel string) (int, error)
+}
+
 type Service struct {
-	repo *Repository
+	repo repository
 	pool *pgxpool.Pool
 }
 
 // NewService membuat Service.
-func NewService(repo *Repository, pool *pgxpool.Pool) *Service {
+func NewService(repo repository, pool *pgxpool.Pool) *Service {
 	return &Service{repo: repo, pool: pool}
 }
 

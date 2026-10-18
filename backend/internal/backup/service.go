@@ -12,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"cbt-smk-v2/backend/internal/audit"
 	"cbt-smk-v2/backend/internal/config"
 	"cbt-smk-v2/backend/internal/platform"
 
@@ -177,29 +176,31 @@ func runDump(ctx context.Context, conn dbConn, destPath string) (int64, error) {
 
 // --- Service ----------------------------------------------------------------
 
-// RequestActor adalah identitas pemanggil untuk audit log.
-// Dibangun handler dari echo.Context agar service bebas dari HTTP.
-type RequestActor struct {
-	UserID string
-	RealIP string
-}
 
 // Service adalah lapisan logika bisnis paket backup.
+// repository adalah kontrak penyimpanan yang dipakai Service.
+// (DIP: Service bergantung pada abstraksi, bukan *Repository konkrit.)
+type repository interface {
+	CountMeta(ctx context.Context) (int64, error)
+	DeleteMeta(ctx context.Context, id string) error
+	ExamInProgress(ctx context.Context) (string, error)
+	GetMeta(ctx context.Context, id string) (*backupMeta, error)
+	InsertMeta(ctx context.Context, m *backupMeta) error
+	ListMeta(ctx context.Context, limit, offset int) ([]backupMeta, error)
+	UpsertMeta(ctx context.Context, m *backupMeta) error
+}
+
 type Service struct {
-	repo *Repository
+	repo repository
 	pool *pgxpool.Pool
 	cfg  *config.Config
 }
 
 // NewService membuat Service.
-func NewService(repo *Repository, pool *pgxpool.Pool, cfg *config.Config) *Service {
+func NewService(repo repository, pool *pgxpool.Pool, cfg *config.Config) *Service {
 	return &Service{repo: repo, pool: pool, cfg: cfg}
 }
 
-// catat menulis audit log. (Dulu: audit.Catat di handler.)
-func (s *Service) catat(ctx context.Context, actor RequestActor, aksi, entitas, entitasID string, detail any) {
-	_ = audit.Catat(ctx, s.pool, actor.UserID, aksi, entitas, entitasID, detail, actor.RealIP)
-}
 
 // doBackup membuat satu file dump + baris meta-nya. Dipakai POST /backup
 // (jenis 'manual') dan sebagai pre-restore backup (jenis 'pre-restore').
@@ -248,7 +249,7 @@ func (s *Service) doBackup(ctx context.Context, jenis, dibuatOleh, keterangan st
 }
 
 // Buat membuat backup manual + mencatat audit.
-func (s *Service) Buat(ctx context.Context, actor RequestActor, keterangan string) (map[string]any, *platform.AppError) {
+func (s *Service) Buat(ctx context.Context, actor platform.RequestActor, keterangan string) (map[string]any, *platform.AppError) {
 	dumpMu.Lock()
 	m, err := s.doBackup(ctx, "manual", actor.UserID, keterangan)
 	dumpMu.Unlock()
@@ -258,7 +259,7 @@ func (s *Service) Buat(ctx context.Context, actor RequestActor, keterangan strin
 		}
 		return nil, platform.ErrInternal("internal_error", "Gagal membuat backup: "+err.Error())
 	}
-	s.catat(ctx, actor, "backup.create", "backup", m.ID,
+	platform.Catat(ctx, s.pool, actor, "backup.create", "backup", m.ID,
 		map[string]any{"nama_file": m.NamaFile, "ukuran_bytes": m.UkuranBytes, "jenis": m.Jenis})
 	return map[string]any{
 		"id": m.ID, "nama_file": m.NamaFile, "ukuran_bytes": m.UkuranBytes,
@@ -288,7 +289,7 @@ type BerkasUnduhan struct {
 
 // Unduh menyiapkan file backup untuk diunduh + mencatat audit download.
 // File HARUS ditutup pemanggil setelah selesai di-stream.
-func (s *Service) Unduh(ctx context.Context, actor RequestActor, id string) (*BerkasUnduhan, *platform.AppError) {
+func (s *Service) Unduh(ctx context.Context, actor platform.RequestActor, id string) (*BerkasUnduhan, *platform.AppError) {
 	m, err := s.repo.GetMeta(ctx, id)
 	if err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal membaca metadata backup.")
@@ -312,7 +313,7 @@ func (s *Service) Unduh(ctx context.Context, actor RequestActor, id string) (*Be
 		_ = f.Close()
 		return nil, platform.ErrInternal("internal_error", "Gagal membaca file backup.")
 	}
-	s.catat(ctx, actor, "backup.download", "backup", m.ID,
+	platform.Catat(ctx, s.pool, actor, "backup.download", "backup", m.ID,
 		map[string]any{"nama_file": m.NamaFile, "ukuran_bytes": m.UkuranBytes})
 	return &BerkasUnduhan{Meta: m, File: f, Size: info.Size()}, nil
 }
@@ -320,7 +321,7 @@ func (s *Service) Unduh(ctx context.Context, actor RequestActor, id string) (*Be
 // Restore memulihkan satu dump ke database yang sama, diawali backup
 // pengaman otomatis. Lihat catatan paket soal subtleti pg_restore
 // --clean yang menghapus baris meta/audit sebelum restore.
-func (s *Service) Restore(ctx context.Context, actor RequestActor, id string) (map[string]any, *platform.AppError) {
+func (s *Service) Restore(ctx context.Context, actor platform.RequestActor, id string) (map[string]any, *platform.AppError) {
 	dumpMu.Lock()
 	defer dumpMu.Unlock()
 
@@ -349,7 +350,7 @@ func (s *Service) Restore(ctx context.Context, actor RequestActor, id string) (m
 	if blocked, err := s.repo.ExamInProgress(ctx); err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal memeriksa status ujian sebelum restore.")
 	} else if blocked != "" {
-		s.catat(ctx, actor, "backup.restore.ditolak", "backup", target.ID,
+		platform.Catat(ctx, s.pool, actor, "backup.restore.ditolak", "backup", target.ID,
 			map[string]any{"nama_file": target.NamaFile, "alasan": blocked})
 		return nil, platform.ErrConflict("conflict", blocked)
 	}
@@ -362,7 +363,7 @@ func (s *Service) Restore(ctx context.Context, actor RequestActor, id string) (m
 		}
 		return nil, platform.ErrInternal("internal_error", "Gagal membuat backup pengaman sebelum restore: "+err.Error())
 	}
-	s.catat(ctx, actor, "backup.create", "backup", pre.ID,
+	platform.Catat(ctx, s.pool, actor, "backup.create", "backup", pre.ID,
 		map[string]any{"nama_file": pre.NamaFile, "ukuran_bytes": pre.UkuranBytes, "jenis": "pre-restore"})
 
 	// Jalankan pg_restore --clean --if-exists ke DB yang sama.
@@ -383,7 +384,7 @@ func (s *Service) Restore(ctx context.Context, actor RequestActor, id string) (m
 	if err := cmd.Run(); err != nil {
 		// Pre-restore backup tetap tercatat (restore belum berhasil
 		// menimpa data) — sebutkan namanya agar admin bisa pulih manual.
-		s.catat(ctx, actor, "backup.restore.gagal", "backup", target.ID,
+		platform.Catat(ctx, s.pool, actor, "backup.restore.gagal", "backup", target.ID,
 			map[string]any{"nama_file": target.NamaFile, "pre_restore_backup": pre.NamaFile, "error": strings.TrimSpace(stderr.String())})
 		if restoreCtx.Err() == context.DeadlineExceeded {
 			return nil, platform.ErrInternal("internal_error", "pg_restore timeout setelah 10 menit. Data saat ini mungkin sebagian terpulihkan. Backup pengaman tersedia di file "+pre.NamaFile+" — pulihkan manual bila perlu.")
@@ -395,10 +396,10 @@ func (s *Service) Restore(ctx context.Context, actor RequestActor, id string) (m
 	// ditulis sebelum restore: kembalikan jejaknya ke DB hasil restore.
 	_ = s.repo.UpsertMeta(ctx, pre)
 	_ = s.repo.UpsertMeta(ctx, target)
-	s.catat(ctx, actor, "backup.create", "backup", pre.ID,
+	platform.Catat(ctx, s.pool, actor, "backup.create", "backup", pre.ID,
 		map[string]any{"nama_file": pre.NamaFile, "ukuran_bytes": pre.UkuranBytes, "jenis": "pre-restore",
 			"keterangan": "Backup pengaman otomatis sebelum restore dari " + target.NamaFile})
-	s.catat(ctx, actor, "backup.restore", "backup", target.ID,
+	platform.Catat(ctx, s.pool, actor, "backup.restore", "backup", target.ID,
 		map[string]any{"nama_file": target.NamaFile, "dipulihkan_dari": target.NamaFile,
 			"pre_restore_backup": pre.NamaFile, "pre_restore_backup_id": pre.ID})
 	return map[string]any{
@@ -413,7 +414,7 @@ func (s *Service) Restore(ctx context.Context, actor RequestActor, id string) (m
 // Hapus menghapus file + metadata backup. Pre-restore backup berusia
 // < 7 hari DITOLAK (pengaman restore terakhir harus tetap tersedia)
 // dan penolakan dicatat alasannya di audit.
-func (s *Service) Hapus(ctx context.Context, actor RequestActor, id string) (map[string]any, *platform.AppError) {
+func (s *Service) Hapus(ctx context.Context, actor platform.RequestActor, id string) (map[string]any, *platform.AppError) {
 	dumpMu.Lock()
 	defer dumpMu.Unlock()
 
@@ -426,7 +427,7 @@ func (s *Service) Hapus(ctx context.Context, actor RequestActor, id string) (map
 	}
 	if m.Jenis == "pre-restore" && time.Since(m.CreatedAt) < preRestoreMinAge {
 		alasan := fmt.Sprintf("Pre-restore backup berusia %s (kurang dari 7 hari) tidak boleh dihapus — pengaman restore terakhir harus tetap tersedia.", time.Since(m.CreatedAt).Round(time.Minute))
-		s.catat(ctx, actor, "backup.delete.ditolak", "backup", m.ID,
+		platform.Catat(ctx, s.pool, actor, "backup.delete.ditolak", "backup", m.ID,
 			map[string]any{"nama_file": m.NamaFile, "jenis": m.Jenis, "alasan": alasan})
 		return nil, platform.ErrConflict("conflict", alasan)
 	}
@@ -440,7 +441,7 @@ func (s *Service) Hapus(ctx context.Context, actor RequestActor, id string) (map
 	if err := s.repo.DeleteMeta(ctx, m.ID); err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal menghapus metadata backup.")
 	}
-	s.catat(ctx, actor, "backup.delete", "backup", m.ID,
+	platform.Catat(ctx, s.pool, actor, "backup.delete", "backup", m.ID,
 		map[string]any{"nama_file": m.NamaFile, "jenis": m.Jenis, "ukuran_bytes": m.UkuranBytes})
 	return map[string]any{"deleted": true, "id": m.ID, "nama_file": m.NamaFile}, nil
 }

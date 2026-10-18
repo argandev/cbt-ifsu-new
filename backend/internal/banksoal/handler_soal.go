@@ -39,7 +39,7 @@ func (h *Handler) CreateSoal(c *echo.Context) error {
 	if err := c.Bind(&in); err != nil {
 		return platform.WriteError(c, http.StatusBadRequest, "invalid_body", "Body JSON tidak valid.")
 	}
-	s, appErr := h.svc.CreateSoal(c.Request().Context(), RequestActor{UserID: userID, RealIP: c.RealIP()}, role, c.Param("bankId"), in)
+	s, appErr := h.svc.CreateSoal(c.Request().Context(), platform.RequestActor{UserID: userID, RealIP: c.RealIP()}, role, c.Param("bankId"), in)
 	if appErr != nil {
 		return platform.WriteAppError(c, appErr)
 	}
@@ -80,7 +80,7 @@ func (h *Handler) UpdateSoal(c *echo.Context) error {
 	if err := c.Bind(&in); err != nil {
 		return platform.WriteError(c, http.StatusBadRequest, "invalid_body", "Body JSON tidak valid.")
 	}
-	updated, appErr := h.svc.ApplySoalUpdate(c.Request().Context(), RequestActor{UserID: userID, RealIP: c.RealIP()}, b, sr, in)
+	updated, appErr := h.svc.ApplySoalUpdate(c.Request().Context(), platform.RequestActor{UserID: userID, RealIP: c.RealIP()}, b, sr, in)
 	if appErr != nil {
 		return platform.WriteAppError(c, appErr)
 	}
@@ -96,7 +96,7 @@ func (h *Handler) DeleteSoal(c *echo.Context) error {
 	if !forbidSoalUntukProktor(c, role) {
 		return nil
 	}
-	out, appErr := h.svc.DeleteSoal(c.Request().Context(), RequestActor{UserID: userID, RealIP: c.RealIP()}, role, c.Param("bankId"), c.Param("soalId"))
+	out, appErr := h.svc.DeleteSoal(c.Request().Context(), platform.RequestActor{UserID: userID, RealIP: c.RealIP()}, role, c.Param("bankId"), c.Param("soalId"))
 	if appErr != nil {
 		return platform.WriteAppError(c, appErr)
 	}
@@ -138,7 +138,7 @@ func (h *Handler) ImportCSV(c *echo.Context) error {
 	if mode != "all_or_nothing" && mode != "skip_errors" {
 		return platform.WriteError(c, http.StatusBadRequest, "validation_error", "mode harus all_or_nothing atau skip_errors.")
 	}
-	out, appErr := h.svc.ImportCSV(c.Request().Context(), RequestActor{UserID: userID, RealIP: c.RealIP()}, role, body.BankID, csvText, mode)
+	out, appErr := h.svc.ImportCSV(c.Request().Context(), platform.RequestActor{UserID: userID, RealIP: c.RealIP()}, role, body.BankID, csvText, mode)
 	if appErr != nil {
 		return platform.WriteAppError(c, appErr)
 	}

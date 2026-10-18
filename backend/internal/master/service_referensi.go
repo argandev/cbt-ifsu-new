@@ -61,7 +61,7 @@ func (s *Service) GetKompetensi(ctx context.Context, id string) (*kompetensiDTO,
 }
 
 // CreateKompetensi menambah kompetensi baru.
-func (s *Service) CreateKompetensi(ctx context.Context, actor RequestActor, in kompetensiInput) (*kompetensiDTO, *platform.AppError) {
+func (s *Service) CreateKompetensi(ctx context.Context, actor platform.RequestActor, in kompetensiInput) (*kompetensiDTO, *platform.AppError) {
 	if msg := in.validate(); msg != "" {
 		return nil, platform.NewAppError("validation_error", msg, http.StatusUnprocessableEntity)
 	}
@@ -75,12 +75,12 @@ func (s *Service) CreateKompetensi(ctx context.Context, actor RequestActor, in k
 		}
 		return nil, platform.ErrInternal("internal_error", "Gagal menambah kompetensi.")
 	}
-	s.catat(ctx, actor, "create_kompetensi", "kompetensi", d.ID, map[string]any{"kode": d.Kode})
+	platform.Catat(ctx, s.pool, actor, "create_kompetensi", "kompetensi", d.ID, map[string]any{"kode": d.Kode})
 	return d, nil
 }
 
 // UpdateKompetensi mengubah kompetensi.
-func (s *Service) UpdateKompetensi(ctx context.Context, actor RequestActor, id string, in kompetensiInput) (*kompetensiDTO, *platform.AppError) {
+func (s *Service) UpdateKompetensi(ctx context.Context, actor platform.RequestActor, id string, in kompetensiInput) (*kompetensiDTO, *platform.AppError) {
 	if !validUUID(id) {
 		return nil, platform.ErrNotFound("not_found", "Kompetensi tidak ditemukan.")
 	}
@@ -100,13 +100,13 @@ func (s *Service) UpdateKompetensi(ctx context.Context, actor RequestActor, id s
 		}
 		return nil, platform.ErrInternal("internal_error", "Gagal mengubah kompetensi.")
 	}
-	s.catat(ctx, actor, "update_kompetensi", "kompetensi", d.ID, map[string]any{"kode": d.Kode})
+	platform.Catat(ctx, s.pool, actor, "update_kompetensi", "kompetensi", d.ID, map[string]any{"kode": d.Kode})
 	return d, nil
 }
 
 // DeleteKompetensi menghapus kompetensi. Ditolak 409 bila masih dipakai
 // kisi-kisi atau soal.
-func (s *Service) DeleteKompetensi(ctx context.Context, actor RequestActor, id string) (map[string]any, *platform.AppError) {
+func (s *Service) DeleteKompetensi(ctx context.Context, actor platform.RequestActor, id string) (map[string]any, *platform.AppError) {
 	if !validUUID(id) {
 		return nil, platform.ErrNotFound("not_found", "Kompetensi tidak ditemukan.")
 	}
@@ -131,7 +131,7 @@ func (s *Service) DeleteKompetensi(ctx context.Context, actor RequestActor, id s
 	if affected == 0 {
 		return nil, platform.ErrNotFound("not_found", "Kompetensi tidak ditemukan.")
 	}
-	s.catat(ctx, actor, "delete_kompetensi", "kompetensi", id, nil)
+	platform.Catat(ctx, s.pool, actor, "delete_kompetensi", "kompetensi", id, nil)
 	return map[string]any{"deleted": true, "id": id}, nil
 }
 
@@ -205,7 +205,7 @@ func (s *Service) GetKisiKisi(ctx context.Context, id string) (*kisiKisiDTO, *pl
 }
 
 // CreateKisiKisi menambah kisi-kisi baru.
-func (s *Service) CreateKisiKisi(ctx context.Context, actor RequestActor, in kisiKisiInput) (*kisiKisiDTO, *platform.AppError) {
+func (s *Service) CreateKisiKisi(ctx context.Context, actor platform.RequestActor, in kisiKisiInput) (*kisiKisiDTO, *platform.AppError) {
 	if msg := in.validate(); msg != "" {
 		return nil, platform.NewAppError("validation_error", msg, http.StatusUnprocessableEntity)
 	}
@@ -216,12 +216,12 @@ func (s *Service) CreateKisiKisi(ctx context.Context, actor RequestActor, in kis
 		}
 		return nil, platform.ErrInternal("internal_error", "Gagal menambah kisi-kisi.")
 	}
-	s.catat(ctx, actor, "create_kisi_kisi", "kisi_kisi", d.ID, map[string]any{"kelompok": d.Kelompok})
+	platform.Catat(ctx, s.pool, actor, "create_kisi_kisi", "kisi_kisi", d.ID, map[string]any{"kelompok": d.Kelompok})
 	return d, nil
 }
 
 // UpdateKisiKisi mengubah kisi-kisi.
-func (s *Service) UpdateKisiKisi(ctx context.Context, actor RequestActor, id string, in kisiKisiInput) (*kisiKisiDTO, *platform.AppError) {
+func (s *Service) UpdateKisiKisi(ctx context.Context, actor platform.RequestActor, id string, in kisiKisiInput) (*kisiKisiDTO, *platform.AppError) {
 	if !validUUID(id) {
 		return nil, platform.ErrNotFound("not_found", "Kisi-kisi tidak ditemukan.")
 	}
@@ -238,12 +238,12 @@ func (s *Service) UpdateKisiKisi(ctx context.Context, actor RequestActor, id str
 		}
 		return nil, platform.ErrInternal("internal_error", "Gagal mengubah kisi-kisi.")
 	}
-	s.catat(ctx, actor, "update_kisi_kisi", "kisi_kisi", d.ID, map[string]any{"kelompok": d.Kelompok})
+	platform.Catat(ctx, s.pool, actor, "update_kisi_kisi", "kisi_kisi", d.ID, map[string]any{"kelompok": d.Kelompok})
 	return d, nil
 }
 
 // DeleteKisiKisi menghapus kisi-kisi. Ditolak 409 bila masih dipakai soal.
-func (s *Service) DeleteKisiKisi(ctx context.Context, actor RequestActor, id string) (map[string]any, *platform.AppError) {
+func (s *Service) DeleteKisiKisi(ctx context.Context, actor platform.RequestActor, id string) (map[string]any, *platform.AppError) {
 	if !validUUID(id) {
 		return nil, platform.ErrNotFound("not_found", "Kisi-kisi tidak ditemukan.")
 	}
@@ -260,6 +260,6 @@ func (s *Service) DeleteKisiKisi(ctx context.Context, actor RequestActor, id str
 	if affected == 0 {
 		return nil, platform.ErrNotFound("not_found", "Kisi-kisi tidak ditemukan.")
 	}
-	s.catat(ctx, actor, "delete_kisi_kisi", "kisi_kisi", id, nil)
+	platform.Catat(ctx, s.pool, actor, "delete_kisi_kisi", "kisi_kisi", id, nil)
 	return map[string]any{"deleted": true, "id": id}, nil
 }

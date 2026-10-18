@@ -51,7 +51,7 @@ func (s *Service) ListBank(ctx context.Context, f BankFilter, limit, offset int)
 
 // CreateBank membuat bank soal baru.
 // Guru yang membuat bank menjadi pemiliknya; admin boleh menetapkan guru_id.
-func (s *Service) CreateBank(ctx context.Context, actor RequestActor, role string, in bankInput) (*bankRow, *platform.AppError) {
+func (s *Service) CreateBank(ctx context.Context, actor platform.RequestActor, role string, in bankInput) (*bankRow, *platform.AppError) {
 	if strings.TrimSpace(in.Kode) == "" || strings.TrimSpace(in.Nama) == "" {
 		return nil, platform.ErrBadRequest("validation_error", "kode dan nama bank wajib diisi.")
 	}
@@ -80,7 +80,7 @@ func (s *Service) CreateBank(ctx context.Context, actor RequestActor, role strin
 		}
 		return nil, platform.ErrInternal("internal_error", "Gagal membuat bank soal.")
 	}
-	s.catat(ctx, actor, "banksoal.create", "bank_soal", b.ID,
+	platform.Catat(ctx, s.pool, actor, "banksoal.create", "bank_soal", b.ID,
 		map[string]any{"kode": b.Kode, "nama": b.Nama})
 	return b, nil
 }
@@ -119,7 +119,7 @@ func (s *Service) LoadBankChecked(ctx context.Context, role, userID, id string) 
 // ApplyBankUpdate memvalidasi input + menyimpan perubahan bank.
 // Dipanggil handler SETELAH bind body (agar 400 bind mendahului validasi,
 // sesuai urutan kode asal).
-func (s *Service) ApplyBankUpdate(ctx context.Context, actor RequestActor, role string, b *bankRow, in bankInput) (*bankRow, *platform.AppError) {
+func (s *Service) ApplyBankUpdate(ctx context.Context, actor platform.RequestActor, role string, b *bankRow, in bankInput) (*bankRow, *platform.AppError) {
 	if strings.TrimSpace(in.Kode) == "" || strings.TrimSpace(in.Nama) == "" {
 		return nil, platform.ErrBadRequest("validation_error", "kode dan nama bank wajib diisi.")
 	}
@@ -145,14 +145,14 @@ func (s *Service) ApplyBankUpdate(ctx context.Context, actor RequestActor, role 
 		}
 		return nil, platform.ErrInternal("internal_error", "Gagal mengubah bank soal.")
 	}
-	s.catat(ctx, actor, "banksoal.update", "bank_soal", b.ID,
+	platform.Catat(ctx, s.pool, actor, "banksoal.update", "bank_soal", b.ID,
 		map[string]any{"kode": in.Kode, "nama": in.Nama})
 	updated, _, _ := s.repo.LoadBank(ctx, b.ID)
 	return updated, nil
 }
 
 // DeleteBank menghapus bank soal. Ditolak 409 bila terkunci atau dipakai paket.
-func (s *Service) DeleteBank(ctx context.Context, actor RequestActor, role, id string) (map[string]any, *platform.AppError) {
+func (s *Service) DeleteBank(ctx context.Context, actor platform.RequestActor, role, id string) (map[string]any, *platform.AppError) {
 	b, found, err := s.repo.LoadBank(ctx, id)
 	if err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal membaca bank soal.")
@@ -176,14 +176,14 @@ func (s *Service) DeleteBank(ctx context.Context, actor RequestActor, role, id s
 	if err := s.repo.DeleteBank(ctx, b.ID); err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal menghapus bank soal.")
 	}
-	s.catat(ctx, actor, "banksoal.delete", "bank_soal", b.ID,
+	platform.Catat(ctx, s.pool, actor, "banksoal.delete", "bank_soal", b.ID,
 		map[string]any{"kode": b.Kode, "nama": b.Nama})
 	return map[string]any{"deleted": true, "id": b.ID}, nil
 }
 
 // SetBankLock mengunci/membuka bank soal. SoD-1 (ANALISIS Bab 11.4):
 // pembuat bank TIDAK BOLEH mengunci/membuka bank buatannya sendiri.
-func (s *Service) SetBankLock(ctx context.Context, actor RequestActor, role, id string, locked bool) (*bankRow, *platform.AppError) {
+func (s *Service) SetBankLock(ctx context.Context, actor platform.RequestActor, role, id string, locked bool) (*bankRow, *platform.AppError) {
 	b, found, err := s.repo.LoadBank(ctx, id)
 	if err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal membaca bank soal.")
@@ -205,7 +205,7 @@ func (s *Service) SetBankLock(ctx context.Context, actor RequestActor, role, id 
 	if !locked {
 		aksi = "banksoal.unlock"
 	}
-	s.catat(ctx, actor, aksi, "bank_soal", b.ID,
+	platform.Catat(ctx, s.pool, actor, aksi, "bank_soal", b.ID,
 		map[string]any{"kode": b.Kode, "is_locked": locked})
 	updated, _, _ := s.repo.LoadBank(ctx, b.ID)
 	return updated, nil

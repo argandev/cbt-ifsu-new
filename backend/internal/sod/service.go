@@ -9,7 +9,6 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"cbt-smk-v2/backend/internal/audit"
 	"cbt-smk-v2/backend/internal/notifikasi"
 	"cbt-smk-v2/backend/internal/platform"
 )
@@ -53,35 +52,32 @@ type OverrideInput struct {
 	Alasan    string
 }
 
-// RequestActor adalah identitas pemanggil untuk audit log.
-// Dibangun handler dari echo.Context agar service bebas dari HTTP
-// (pola paket users).
-type RequestActor struct {
-	UserID string
-	RealIP string
-}
 
 // Service adalah lapisan logika bisnis paket sod.
+// repository adalah kontrak penyimpanan yang dipakai Service.
+// (DIP: Service bergantung pada abstraksi, bukan *Repository konkrit.)
+type repository interface {
+	AdminLainAktif(ctx context.Context, actorID string) []string
+	InsertOverride(ctx context.Context, actorID, aksi, entitas, entitasID, alasan string) (string, error)
+	NamaActor(ctx context.Context, userID string) string
+}
+
 type Service struct {
-	repo *Repository
+	repo repository
 	pool *pgxpool.Pool
 	log  *slog.Logger
 }
 
 // NewService membuat Service.
-func NewService(repo *Repository, pool *pgxpool.Pool, log *slog.Logger) *Service {
+func NewService(repo repository, pool *pgxpool.Pool, log *slog.Logger) *Service {
 	return &Service{repo: repo, pool: pool, log: log}
 }
 
-// catat menulis audit log. (Dulu: audit.Catat langsung di handler.)
-func (s *Service) catat(ctx context.Context, actor RequestActor, aksi, entitas, entitasID string, detail any) error {
-	return audit.Catat(ctx, s.pool, actor.UserID, aksi, entitas, entitasID, detail, actor.RealIP)
-}
 
 // Override mencatat satu pengecualian SoD darurat: insert override ->
 // audit berflag SOD_OVERRIDE -> notifikasi semua admin lain.
 // (Dipindah dari closure Register tanpa perubahan perilaku.)
-func (s *Service) Override(ctx context.Context, actor RequestActor, in OverrideInput) (map[string]any, *platform.AppError) {
+func (s *Service) Override(ctx context.Context, actor platform.RequestActor, in OverrideInput) (map[string]any, *platform.AppError) {
 	if actor.UserID == "" {
 		return nil, platform.ErrUnauthorized("unauthenticated", "Harus login dulu.")
 	}
@@ -102,7 +98,7 @@ func (s *Service) Override(ctx context.Context, actor RequestActor, in OverrideI
 	// Audit dengan flag SOD_OVERRIDE (detail JSON berisi aksi +
 	// alasan + entitas). Gagal catat tidak menggagalkan override
 	// yang sudah tersimpan, tapi dicatat ke log server.
-	if err := s.catat(ctx, actor, "sod.override", "sod_override", id,
+	if err := platform.Catat(ctx, s.pool, actor, "sod.override", "sod_override", id,
 		DetailAudit(aksi, entitas, entitasID, alasan)); err != nil {
 		s.log.Error("sod: gagal mencatat audit SOD_OVERRIDE", "error", err)
 	}

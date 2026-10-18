@@ -8,7 +8,7 @@ import (
 
 // ListKoreksi mengembalikan jawaban manual yang belum dikoreksi
 // untuk satu jadwal.
-func (s *Service) ListKoreksi(ctx context.Context, actor RequestActor, jadwalID string) (any, *platform.AppError) {
+func (s *Service) ListKoreksi(ctx context.Context, actor platform.RequestActor, jadwalID string) (any, *platform.AppError) {
 	if _, err := s.repo.GetJadwal(ctx, jadwalID); err != nil {
 		return nil, platform.ErrNotFound("not_found", "Jadwal tidak ditemukan.")
 	}
@@ -22,7 +22,7 @@ func (s *Service) ListKoreksi(ctx context.Context, actor RequestActor, jadwalID 
 // KoreksiJawaban menyimpan skor koreksi manual (skor 0–100);
 // poin = skor/100 × bobot. Nilai akhir dihitung ulang bila attempt
 // sudah selesai.
-func (s *Service) KoreksiJawaban(ctx context.Context, actor RequestActor, jawabanID string, skor float64) (map[string]any, *platform.AppError) {
+func (s *Service) KoreksiJawaban(ctx context.Context, actor platform.RequestActor, jawabanID string, skor float64) (map[string]any, *platform.AppError) {
 	attemptID, soalID, bobot, err := s.repo.GetJawabanKoreksi(ctx, jawabanID)
 	if err != nil {
 		return nil, platform.ErrNotFound("not_found", "Jawaban tidak ditemukan.")
@@ -59,7 +59,7 @@ func (s *Service) KoreksiJawaban(ctx context.Context, actor RequestActor, jawaba
 		// Attempt masih berjalan: nilai akhir dihitung saat submit.
 		_, menunggu, _ = s.hitungNilai(ctx, attemptID)
 	}
-	s.catat(ctx, actor, "koreksi.update", "jawaban", jawabanID,
+	platform.Catat(ctx, s.pool, actor, "koreksi.update", "jawaban", jawabanID,
 		map[string]any{"attempt_id": attemptID, "soal_id": soalID, "skor": skor, "poin": poin})
 	a, _ := s.repo.GetAttempt(ctx, attemptID)
 	if a.ID != "" && nilaiBaru != nil {

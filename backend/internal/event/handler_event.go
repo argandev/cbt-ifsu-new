@@ -31,7 +31,7 @@ func (h *Handler) CreateEvent(c *echo.Context) error {
 	if err := c.Bind(&in); err != nil {
 		return platform.WriteError(c, http.StatusBadRequest, "validation_error", "Body JSON tidak valid.")
 	}
-	ev, appErr := h.svc.CreateEvent(c.Request().Context(), RequestActor{UserID: userID, RealIP: c.RealIP()}, in)
+	ev, appErr := h.svc.CreateEvent(c.Request().Context(), platform.RequestActor{UserID: userID, RealIP: c.RealIP()}, in)
 	if appErr != nil {
 		return platform.WriteAppError(c, appErr)
 	}
@@ -65,7 +65,7 @@ func (h *Handler) UpdateEvent(c *echo.Context) error {
 	if err := c.Bind(&in); err != nil {
 		return platform.WriteError(c, http.StatusBadRequest, "validation_error", "Body JSON tidak valid.")
 	}
-	updated, appErr := h.svc.ApplyEventUpdate(c.Request().Context(), RequestActor{UserID: userID, RealIP: c.RealIP()}, ev, in)
+	updated, appErr := h.svc.ApplyEventUpdate(c.Request().Context(), platform.RequestActor{UserID: userID, RealIP: c.RealIP()}, ev, in)
 	if appErr != nil {
 		return platform.WriteAppError(c, appErr)
 	}
@@ -78,7 +78,7 @@ func (h *Handler) DeleteEvent(c *echo.Context) error {
 	if !ok {
 		return nil
 	}
-	out, appErr := h.svc.DeleteEvent(c.Request().Context(), RequestActor{UserID: userID, RealIP: c.RealIP()}, c.Param("id"))
+	out, appErr := h.svc.DeleteEvent(c.Request().Context(), platform.RequestActor{UserID: userID, RealIP: c.RealIP()}, c.Param("id"))
 	if appErr != nil {
 		return platform.WriteAppError(c, appErr)
 	}
@@ -108,7 +108,7 @@ func (h *Handler) CreateRuangan(c *echo.Context) error {
 	if err := c.Bind(&in); err != nil {
 		return platform.WriteError(c, http.StatusBadRequest, "validation_error", "Body JSON tidak valid.")
 	}
-	r, appErr := h.svc.CreateRuangan(c.Request().Context(), RequestActor{UserID: userID, RealIP: c.RealIP()}, in)
+	r, appErr := h.svc.CreateRuangan(c.Request().Context(), platform.RequestActor{UserID: userID, RealIP: c.RealIP()}, in)
 	if appErr != nil {
 		return platform.WriteAppError(c, appErr)
 	}
@@ -142,7 +142,7 @@ func (h *Handler) UpdateRuangan(c *echo.Context) error {
 	if err := c.Bind(&in); err != nil {
 		return platform.WriteError(c, http.StatusBadRequest, "validation_error", "Body JSON tidak valid.")
 	}
-	updated, appErr := h.svc.ApplyRuanganUpdate(c.Request().Context(), RequestActor{UserID: userID, RealIP: c.RealIP()}, r, in)
+	updated, appErr := h.svc.ApplyRuanganUpdate(c.Request().Context(), platform.RequestActor{UserID: userID, RealIP: c.RealIP()}, r, in)
 	if appErr != nil {
 		return platform.WriteAppError(c, appErr)
 	}
@@ -155,7 +155,7 @@ func (h *Handler) DeleteRuangan(c *echo.Context) error {
 	if !ok {
 		return nil
 	}
-	out, appErr := h.svc.DeleteRuangan(c.Request().Context(), RequestActor{UserID: userID, RealIP: c.RealIP()}, c.Param("id"))
+	out, appErr := h.svc.DeleteRuangan(c.Request().Context(), platform.RequestActor{UserID: userID, RealIP: c.RealIP()}, c.Param("id"))
 	if appErr != nil {
 		return platform.WriteAppError(c, appErr)
 	}
@@ -181,7 +181,7 @@ func (h *Handler) AssignEventRuangan(c *echo.Context) error {
 	if err := c.Bind(&body); err != nil {
 		return platform.WriteError(c, http.StatusBadRequest, "validation_error", "Body JSON tidak valid.")
 	}
-	out, appErr := h.svc.ApplyAssign(c.Request().Context(), RequestActor{UserID: userID, RealIP: c.RealIP()}, c.Param("id"), kelasID, kelasNama, body.EventID, body.RuanganID)
+	out, appErr := h.svc.ApplyAssign(c.Request().Context(), platform.RequestActor{UserID: userID, RealIP: c.RealIP()}, c.Param("id"), kelasID, kelasNama, body.EventID, body.RuanganID)
 	if appErr != nil {
 		return platform.WriteAppError(c, appErr)
 	}

@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"cbt-smk-v2/backend/internal/platform"
 )
 
 // Kelompok tipe soal: "inti" = bentuk resmi AKM (Framework AKM 2023),
@@ -157,12 +158,6 @@ func NormalLevel(level string) string {
 	return strings.ToLower(strings.TrimSpace(level))
 }
 
-// NormalisasiIsian menormalkan jawaban isian: trim, lowercase,
-// rapatkan spasi berlebih. Dipakai isian, isi_ganda, teks_rumpang.
-func NormalisasiIsian(s string) string {
-	fields := strings.Fields(strings.ToLower(strings.TrimSpace(s)))
-	return strings.Join(fields, " ")
-}
 
 // --- Bentuk jawaban/kunci per tipe (dipakai validasi + penilaian) ---
 
@@ -544,9 +539,9 @@ func ScoreAuto(tipe string, kunciRaw json.RawMessage, jawabanSiswaRaw json.RawMe
 		if s == "" {
 			s, _ = siswa["teks"].(string)
 		}
-		norm := NormalisasiIsian(s)
+		norm := platform.NormalisasiIsian(s)
 		for _, k := range ks {
-			if norm == NormalisasiIsian(k) {
+			if norm == platform.NormalisasiIsian(k) {
 				return b, true, nil
 			}
 		}
@@ -572,7 +567,7 @@ func ScoreAuto(tipe string, kunciRaw json.RawMessage, jawabanSiswaRaw json.RawMe
 		}
 		benar := 0
 		for i, k := range ks {
-			if i < len(ss) && NormalisasiIsian(ss[i]) == NormalisasiIsian(k) {
+			if i < len(ss) && platform.NormalisasiIsian(ss[i]) == platform.NormalisasiIsian(k) {
 				benar++
 			}
 		}

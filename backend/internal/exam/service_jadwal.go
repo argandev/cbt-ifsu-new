@@ -48,7 +48,7 @@ func validateJadwal(in JadwalInput) (jadwal, *platform.AppError) {
 }
 
 // ListJadwal mengembalikan daftar jadwal ujian.
-func (s *Service) ListJadwal(ctx context.Context, actor RequestActor, status, kelasID, tanggal string) (any, *platform.AppError) {
+func (s *Service) ListJadwal(ctx context.Context, actor platform.RequestActor, status, kelasID, tanggal string) (any, *platform.AppError) {
 	items, err := s.repo.ListJadwal(ctx, status, kelasID, tanggal)
 	if err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal membaca jadwal.")
@@ -57,7 +57,7 @@ func (s *Service) ListJadwal(ctx context.Context, actor RequestActor, status, ke
 }
 
 // CreateJadwal membuat jadwal ujian baru.
-func (s *Service) CreateJadwal(ctx context.Context, actor RequestActor, in JadwalInput) (*jadwal, *platform.AppError) {
+func (s *Service) CreateJadwal(ctx context.Context, actor platform.RequestActor, in JadwalInput) (*jadwal, *platform.AppError) {
 	j, appErr := validateJadwal(in)
 	if appErr != nil {
 		return nil, appErr
@@ -75,13 +75,13 @@ func (s *Service) CreateJadwal(ctx context.Context, actor RequestActor, in Jadwa
 		return nil, platform.ErrInternal("internal_error", "Gagal membuat jadwal.")
 	}
 	j.ID = id
-	s.catat(ctx, actor, "jadwal.create", "jadwal_ujian", id,
+	platform.Catat(ctx, s.pool, actor, "jadwal.create", "jadwal_ujian", id,
 		map[string]any{"paket_id": j.PaketID, "kelas_id": j.KelasID, "tanggal": j.Tanggal})
 	return &j, nil
 }
 
 // GetJadwalDetail mengembalikan detail jadwal (TANPA token_hash).
-func (s *Service) GetJadwalDetail(ctx context.Context, actor RequestActor, id string) (map[string]any, *platform.AppError) {
+func (s *Service) GetJadwalDetail(ctx context.Context, actor platform.RequestActor, id string) (map[string]any, *platform.AppError) {
 	j, err := s.repo.GetJadwal(ctx, id)
 	if err != nil {
 		return nil, platform.ErrNotFound("not_found", "Jadwal tidak ditemukan.")
@@ -100,7 +100,7 @@ func (s *Service) GetJadwalDetail(ctx context.Context, actor RequestActor, id st
 }
 
 // UpdateJadwal mengubah jadwal ujian.
-func (s *Service) UpdateJadwal(ctx context.Context, actor RequestActor, id string, in JadwalInput) (map[string]any, *platform.AppError) {
+func (s *Service) UpdateJadwal(ctx context.Context, actor platform.RequestActor, id string, in JadwalInput) (map[string]any, *platform.AppError) {
 	j, appErr := validateJadwal(in)
 	if appErr != nil {
 		return nil, appErr
@@ -119,13 +119,13 @@ func (s *Service) UpdateJadwal(ctx context.Context, actor RequestActor, id strin
 	if n == 0 {
 		return nil, platform.ErrNotFound("not_found", "Jadwal tidak ditemukan.")
 	}
-	s.catat(ctx, actor, "jadwal.update", "jadwal_ujian", id,
+	platform.Catat(ctx, s.pool, actor, "jadwal.update", "jadwal_ujian", id,
 		map[string]any{"status": j.Status})
 	return map[string]any{"id": id, "updated": true}, nil
 }
 
 // DeleteJadwal menghapus jadwal (ditolak bila sudah punya attempt).
-func (s *Service) DeleteJadwal(ctx context.Context, actor RequestActor, id string) (map[string]any, *platform.AppError) {
+func (s *Service) DeleteJadwal(ctx context.Context, actor platform.RequestActor, id string) (map[string]any, *platform.AppError) {
 	jumlahAttempt, _ := s.repo.CountAttemptJadwal(ctx, id)
 	if jumlahAttempt > 0 {
 		return nil, platform.ErrConflict("conflict", "Jadwal sudah punya attempt peserta. Tidak boleh dihapus (hasil ujian tidak pernah dihapus fisik).")
@@ -137,12 +137,12 @@ func (s *Service) DeleteJadwal(ctx context.Context, actor RequestActor, id strin
 	if n == 0 {
 		return nil, platform.ErrNotFound("not_found", "Jadwal tidak ditemukan.")
 	}
-	s.catat(ctx, actor, "jadwal.delete", "jadwal_ujian", id, nil)
+	platform.Catat(ctx, s.pool, actor, "jadwal.delete", "jadwal_ujian", id, nil)
 	return map[string]any{"id": id, "deleted": true}, nil
 }
 
 // PauseJadwal menjeda jadwal + membekukan timer peserta.
-func (s *Service) PauseJadwal(ctx context.Context, actor RequestActor, id string) (map[string]any, *platform.AppError) {
+func (s *Service) PauseJadwal(ctx context.Context, actor platform.RequestActor, id string) (map[string]any, *platform.AppError) {
 	j, err := s.repo.GetJadwal(ctx, id)
 	if err != nil {
 		return nil, platform.ErrNotFound("not_found", "Jadwal tidak ditemukan.")
@@ -165,13 +165,13 @@ func (s *Service) PauseJadwal(ctx context.Context, actor RequestActor, id string
 	if err := tx.Commit(ctx); err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal menjeda jadwal.")
 	}
-	s.catat(ctx, actor, "jadwal.pause", "jadwal_ujian", id, nil)
+	platform.Catat(ctx, s.pool, actor, "jadwal.pause", "jadwal_ujian", id, nil)
 	monitor.Broadcast(id, map[string]any{"type": "jadwal_pause", "jadwal_id": id})
 	return map[string]any{"id": id, "status": "pause"}, nil
 }
 
 // ResumeJadwal melanjutkan jadwal yang dijeda + memulihkan timer.
-func (s *Service) ResumeJadwal(ctx context.Context, actor RequestActor, id string) (map[string]any, *platform.AppError) {
+func (s *Service) ResumeJadwal(ctx context.Context, actor platform.RequestActor, id string) (map[string]any, *platform.AppError) {
 	j, err := s.repo.GetJadwal(ctx, id)
 	if err != nil {
 		return nil, platform.ErrNotFound("not_found", "Jadwal tidak ditemukan.")
@@ -194,7 +194,7 @@ func (s *Service) ResumeJadwal(ctx context.Context, actor RequestActor, id strin
 	if err := tx.Commit(ctx); err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal melanjutkan jadwal.")
 	}
-	s.catat(ctx, actor, "jadwal.resume", "jadwal_ujian", id, nil)
+	platform.Catat(ctx, s.pool, actor, "jadwal.resume", "jadwal_ujian", id, nil)
 	monitor.Broadcast(id, map[string]any{"type": "jadwal_resume", "jadwal_id": id})
 	return map[string]any{"id": id, "status": "aktif"}, nil
 }
@@ -222,7 +222,7 @@ func hashToken(token string) string {
 
 // GenerateToken membuat token baru untuk jadwal (token lama HANGUS).
 // Token plaintext dikembalikan SEKALI di respons ini.
-func (s *Service) GenerateToken(ctx context.Context, actor RequestActor, id string) (map[string]any, *platform.AppError) {
+func (s *Service) GenerateToken(ctx context.Context, actor platform.RequestActor, id string) (map[string]any, *platform.AppError) {
 	j, err := s.repo.GetJadwal(ctx, id)
 	if err != nil {
 		return nil, platform.ErrNotFound("not_found", "Jadwal tidak ditemukan.")
@@ -244,7 +244,7 @@ func (s *Service) GenerateToken(ctx context.Context, actor RequestActor, id stri
 		return nil, platform.ErrInternal("internal_error", "Gagal menyimpan token.")
 	}
 	// Audit TIDAK BOLEH mencatat token plaintext (lihat docs/KEAMANAN.md).
-	s.catat(ctx, actor, "jadwal.token.generate", "jadwal_ujian", id,
+	platform.Catat(ctx, s.pool, actor, "jadwal.token.generate", "jadwal_ujian", id,
 		map[string]any{"token_expires_at": expiry.Format(time.RFC3339)})
 	return map[string]any{
 		"jadwal_id": id, "token": token,
@@ -254,7 +254,7 @@ func (s *Service) GenerateToken(ctx context.Context, actor RequestActor, id stri
 }
 
 // TokenStatus mengembalikan status token (TANPA menampilkan token).
-func (s *Service) TokenStatus(ctx context.Context, actor RequestActor, id string) (map[string]any, *platform.AppError) {
+func (s *Service) TokenStatus(ctx context.Context, actor platform.RequestActor, id string) (map[string]any, *platform.AppError) {
 	j, err := s.repo.GetJadwal(ctx, id)
 	if err != nil {
 		return nil, platform.ErrNotFound("not_found", "Jadwal tidak ditemukan.")

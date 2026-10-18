@@ -6,28 +6,14 @@ import (
 	"strings"
 	"time"
 
-	"cbt-smk-v2/backend/internal/audit"
 	"cbt-smk-v2/backend/internal/platform"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // --- Service ----------------------------------------------------------------
 
-// Predikat menghitung predikat dari nilai 0-100.
-// (Dipindah dari rekap.go tanpa perubahan.)
-func Predikat(nilai float64) string {
-	switch {
-	case nilai < 70:
-		return "Belum Tuntas"
-	case nilai < 80:
-		return "Cukup"
-	case nilai <= 90:
-		return "Baik"
-	default:
-		return "Sangat Baik"
-	}
-}
 
 // statistik menghitung ringkasan nilai. (Dipindah tanpa perubahan.)
 func statistik(rows []nilaiRow) map[string]any {
@@ -60,28 +46,32 @@ func statistik(rows []nilaiRow) map[string]any {
 	}
 }
 
-// RequestActor adalah identitas pemanggil untuk audit log.
-// Dibangun handler dari echo.Context agar service bebas dari HTTP.
-type RequestActor struct {
-	UserID string
-	RealIP string
-}
 
 // Service adalah lapisan logika bisnis paket rekap.
+// repository adalah kontrak penyimpanan yang dipakai Service.
+// (DIP: Service bergantung pada abstraksi, bukan *Repository konkrit.)
+type repository interface {
+	BeginTx(ctx context.Context) (pgx.Tx, error)
+	FinalisasiNilaiTx(ctx context.Context, tx pgx.Tx, jadwalID string) (int, error)
+	GetJadwalInfo(ctx context.Context, jadwalID string) (jadwalInfo, error)
+	GetNilaiSiswaTx(ctx context.Context, tx pgx.Tx, jadwalID, siswaID string) (string, float64, error)
+	HitungKehadiran(ctx context.Context, jadwalID string) (total, hadir int, err error)
+	InsertRemedialTx(ctx context.Context, tx pgx.Tx, jadwalID, siswaID string, nilaiBaru float64) error
+	ListNilai(ctx context.Context, jadwalID string, siswaID *string, onlyFinal bool) ([]nilaiRow, error)
+	TampilHasilKeSiswa(ctx context.Context) bool
+	UpdateNilaiAkhirTx(ctx context.Context, tx pgx.Tx, nilaiAkhirID string, nilai float64, predikat string) error
+}
+
 type Service struct {
-	repo *Repository
+	repo repository
 	pool *pgxpool.Pool
 }
 
 // NewService membuat Service.
-func NewService(repo *Repository, pool *pgxpool.Pool) *Service {
+func NewService(repo repository, pool *pgxpool.Pool) *Service {
 	return &Service{repo: repo, pool: pool}
 }
 
-// catat menulis audit log. (Dulu: audit.Catat di handler.)
-func (s *Service) catat(ctx context.Context, actor RequestActor, aksi, entitas, entitasID string, detail any) {
-	_ = audit.Catat(ctx, s.pool, actor.UserID, aksi, entitas, entitasID, detail, actor.RealIP)
-}
 
 // RekapSiswa mengembalikan rekap untuk siswa: hanya nilainya sendiri,
 // hanya bila final + setting tampil_hasil_ke_siswa aktif.
@@ -106,12 +96,12 @@ func (s *Service) RekapStaf(ctx context.Context, jadwalID string) ([]nilaiRow, m
 }
 
 // ExportData membaca baris rekap untuk export CSV + mencatat audit.
-func (s *Service) ExportData(ctx context.Context, actor RequestActor, jadwalID string) ([]nilaiRow, *platform.AppError) {
+func (s *Service) ExportData(ctx context.Context, actor platform.RequestActor, jadwalID string) ([]nilaiRow, *platform.AppError) {
 	rows, err := s.repo.ListNilai(ctx, jadwalID, nil, false)
 	if err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal membaca rekap.")
 	}
-	s.catat(ctx, actor, "rekap.export", "rekap", jadwalID,
+	platform.Catat(ctx, s.pool, actor, "rekap.export", "rekap", jadwalID,
 		map[string]any{"jadwal_id": jadwalID, "jumlah_baris": len(rows)})
 	return rows, nil
 }
@@ -164,7 +154,7 @@ func (s *Service) BeritaAcara(ctx context.Context, jadwalID string) (map[string]
 }
 
 // Finalisasi menandai semua nilai jadwal sebagai final + mencatat audit.
-func (s *Service) Finalisasi(ctx context.Context, actor RequestActor, jadwalID string) (int, *platform.AppError) {
+func (s *Service) Finalisasi(ctx context.Context, actor platform.RequestActor, jadwalID string) (int, *platform.AppError) {
 	tx, err := s.repo.BeginTx(ctx)
 	if err != nil {
 		return 0, platform.ErrInternal("internal_error", "Gagal memulai finalisasi.")
@@ -177,13 +167,13 @@ func (s *Service) Finalisasi(ctx context.Context, actor RequestActor, jadwalID s
 	if err := tx.Commit(ctx); err != nil {
 		return 0, platform.ErrInternal("internal_error", "Gagal finalisasi nilai.")
 	}
-	s.catat(ctx, actor, "rekap.finalisasi", "rekap", jadwalID,
+	platform.Catat(ctx, s.pool, actor, "rekap.finalisasi", "rekap", jadwalID,
 		map[string]any{"jadwal_id": jadwalID, "jumlah_difinalisasi": count})
 	return count, nil
 }
 
 // Remedial mencatat nilai remedial (dipakai yang tertinggi) + audit.
-func (s *Service) Remedial(ctx context.Context, actor RequestActor, jadwalID, siswaID string, nilaiBaru float64) (map[string]any, *platform.AppError) {
+func (s *Service) Remedial(ctx context.Context, actor platform.RequestActor, jadwalID, siswaID string, nilaiBaru float64) (map[string]any, *platform.AppError) {
 	tx, err := s.repo.BeginTx(ctx)
 	if err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal memulai remedial.")
@@ -199,18 +189,18 @@ func (s *Service) Remedial(ctx context.Context, actor RequestActor, jadwalID, si
 		return nil, platform.ErrNotFound("not_found", "Nilai akhir siswa pada jadwal ini tidak ditemukan.")
 	}
 	nilaiAkhir := math.Max(nilaiAwal, nilaiBaru)
-	if err := s.repo.UpdateNilaiAkhirTx(ctx, tx, nilaiAkhirID, nilaiAkhir, Predikat(nilaiAkhir)); err != nil {
+	if err := s.repo.UpdateNilaiAkhirTx(ctx, tx, nilaiAkhirID, nilaiAkhir, platform.Predikat(nilaiAkhir)); err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal memperbarui nilai akhir.")
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal menyimpan remedial.")
 	}
-	s.catat(ctx, actor, "rekap.remedial", "nilai_akhir", nilaiAkhirID,
+	platform.Catat(ctx, s.pool, actor, "rekap.remedial", "nilai_akhir", nilaiAkhirID,
 		map[string]any{"jadwal_id": jadwalID, "siswa_id": siswaID,
 			"nilai_awal": nilaiAwal, "nilai_remedial": nilaiBaru, "nilai_akhir": nilaiAkhir})
 	return map[string]any{
 		"jadwal_id": jadwalID, "siswa_id": siswaID,
 		"nilai_awal": nilaiAwal, "nilai_remedial": nilaiBaru,
-		"nilai_akhir": nilaiAkhir, "predikat": Predikat(nilaiAkhir),
+		"nilai_akhir": nilaiAkhir, "predikat": platform.Predikat(nilaiAkhir),
 	}, nil
 }

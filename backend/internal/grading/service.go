@@ -36,6 +36,7 @@ import (
 	"encoding/json"
 	"math"
 	"strings"
+	"cbt-smk-v2/backend/internal/platform"
 )
 
 // JawabanNilai adalah satu baris jawaban untuk HitungNilaiAkhir.
@@ -130,12 +131,6 @@ func Manual(tipe string) bool {
 	return NormalisasiTipe(tipe) == "uraian"
 }
 
-// NormalisasiIsian: huruf kecil, spasi diringkas, trim — untuk
-// pencocokan isian singkat (default: tidak case-sensitive).
-func NormalisasiIsian(s string) string {
-	fields := strings.Fields(strings.ToLower(strings.TrimSpace(s)))
-	return strings.Join(fields, " ")
-}
 
 func parseString(raw []byte) (string, bool) {
 	var s string
@@ -572,21 +567,21 @@ func HitungPoin(tipe string, jawaban, kunci []byte, bobot int) (float64, bool) {
 			// Jawaban bisa tersimpan sebagai teks mentah tanpa kutip JSON.
 			jwb = strings.TrimSpace(string(jawaban))
 		}
-		jwbNorm := NormalisasiIsian(jwb)
+		jwbNorm := platform.NormalisasiIsian(jwb)
 		if jwbNorm == "" {
 			return 0, true
 		}
 		// Kunci: string tunggal, {"jawaban": [...]}, atau daftar alternatif.
 		if arr, ok := kunciJawabanList(kunci); ok {
 			for _, alt := range arr {
-				if NormalisasiIsian(alt) == jwbNorm {
+				if platform.NormalisasiIsian(alt) == jwbNorm {
 					return b, true
 				}
 			}
 			return 0, true
 		}
 		if ks, ok := kunciString(kunci); ok {
-			if NormalisasiIsian(ks) == jwbNorm {
+			if platform.NormalisasiIsian(ks) == jwbNorm {
 				return b, true
 			}
 		}
@@ -605,7 +600,7 @@ func HitungPoin(tipe string, jawaban, kunci []byte, bobot int) (float64, bool) {
 		}
 		benar := 0
 		for i, k := range kunciArr {
-			if i < len(jwbArr) && NormalisasiIsian(jwbArr[i]) == NormalisasiIsian(k) {
+			if i < len(jwbArr) && platform.NormalisasiIsian(jwbArr[i]) == platform.NormalisasiIsian(k) {
 				benar++
 			}
 		}

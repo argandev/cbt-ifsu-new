@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"cbt-smk-v2/backend/internal/audit"
 	"cbt-smk-v2/backend/internal/platform"
 	"cbt-smk-v2/backend/internal/session"
 )
@@ -68,36 +67,34 @@ func loginReset(key string) {
 
 // --- Service ----------------------------------------------------------------
 
-// RequestActor adalah identitas pemanggil untuk audit log.
-// Dibangun handler dari echo.Context agar service bebas dari HTTP
-// (pola paket users).
-type RequestActor struct {
-	UserID    string
-	RealIP    string
-	UserAgent string
-}
 
 // Service adalah lapisan logika bisnis paket auth.
+// repository adalah kontrak penyimpanan yang dipakai Service.
+// (DIP: Service bergantung pada abstraksi, bukan *Repository konkrit.)
+type repository interface {
+	ByID(ctx context.Context, id uuid.UUID) (*userRow, error)
+	ByLogin(ctx context.Context, login string) (*userRow, error)
+	PermissionsForRole(ctx context.Context, role string) []string
+	UpdatePasswordGanti(ctx context.Context, id uuid.UUID, hash string) error
+	UpdateTerakhirMasuk(ctx context.Context, id uuid.UUID)
+}
+
 type Service struct {
-	repo *Repository
+	repo repository
 	pool *pgxpool.Pool
 }
 
 // NewService membuat Service.
-func NewService(repo *Repository, pool *pgxpool.Pool) *Service {
+func NewService(repo repository, pool *pgxpool.Pool) *Service {
 	return &Service{repo: repo, pool: pool}
 }
 
-// catat menulis audit log. (Dulu: audit.Catat langsung di handler.)
-func (s *Service) catat(ctx context.Context, actor RequestActor, aksi, entitas, entitasID string, detail any) {
-	_ = audit.Catat(ctx, s.pool, actor.UserID, aksi, entitas, entitasID, detail, actor.RealIP)
-}
 
 // Login memproses login: validasi -> rate limit -> verifikasi password ->
 // guard aktif/wajib-ganti -> buat session. Mengembalikan sessionID +
 // csrfToken + payload respons (user + permissions).
 // (Dipindah dari closure Register tanpa perubahan perilaku.)
-func (s *Service) Login(ctx context.Context, actor RequestActor, login, email, username, password string) (sessionID, csrfToken string, data map[string]any, appErr *platform.AppError) {
+func (s *Service) Login(ctx context.Context, actor platform.RequestActor, login, email, username, password string) (sessionID, csrfToken string, data map[string]any, appErr *platform.AppError) {
 	if login == "" {
 		login = email
 	}
@@ -114,14 +111,14 @@ func (s *Service) Login(ctx context.Context, actor RequestActor, login, email, u
 	u, err := s.repo.ByLogin(ctx, login)
 	if err != nil {
 		loginRecordFailure(key)
-		s.catat(ctx, actor, "auth.login.gagal", "users", "",
+		platform.Catat(ctx, s.pool, actor, "auth.login.gagal", "users", "",
 			map[string]any{"login": login, "alasan": "akun tidak ditemukan"})
 		return "", "", nil, platform.ErrUnauthorized("invalid_credentials", "Email/username atau password salah.")
 	}
 	ok, err := VerifyPassword(password, u.PasswordHash)
 	if err != nil || !ok {
 		loginRecordFailure(key)
-		s.catat(ctx, RequestActor{UserID: u.ID.String(), RealIP: actor.RealIP}, "auth.login.gagal", "users", u.ID.String(),
+		platform.Catat(ctx, s.pool, platform.RequestActor{UserID: u.ID.String(), RealIP: actor.RealIP}, "auth.login.gagal", "users", u.ID.String(),
 			map[string]any{"alasan": "password salah"})
 		return "", "", nil, platform.ErrUnauthorized("invalid_credentials", "Email/username atau password salah.")
 	}
@@ -141,7 +138,7 @@ func (s *Service) Login(ctx context.Context, actor RequestActor, login, email, u
 	// UC20: catat waktu login terakhir. Kegagalan UPDATE diabaikan
 	// (tidak boleh menggagalkan login yang sudah sukses).
 	s.repo.UpdateTerakhirMasuk(ctx, u.ID)
-	s.catat(ctx, RequestActor{UserID: u.ID.String(), RealIP: actor.RealIP}, "auth.login", "users", u.ID.String(),
+	platform.Catat(ctx, s.pool, platform.RequestActor{UserID: u.ID.String(), RealIP: actor.RealIP}, "auth.login", "users", u.ID.String(),
 		map[string]any{"role": u.Role})
 	return sessionID, csrfToken, map[string]any{
 		"user":        userPublic(u),
@@ -150,15 +147,15 @@ func (s *Service) Login(ctx context.Context, actor RequestActor, login, email, u
 }
 
 // Logout menghancurkan session (bila ada) + mencatat audit.
-func (s *Service) Logout(ctx context.Context, actor RequestActor, sessionCookie string) {
+func (s *Service) Logout(ctx context.Context, actor platform.RequestActor, sessionCookie string) {
 	if sessionCookie != "" {
 		_ = session.Destroy(ctx, s.pool, sessionCookie)
 	}
-	s.catat(ctx, actor, "auth.logout", "users", actor.UserID, nil)
+	platform.Catat(ctx, s.pool, actor, "auth.logout", "users", actor.UserID, nil)
 }
 
 // Me mengembalikan user + permissions untuk session aktif.
-func (s *Service) Me(ctx context.Context, actor RequestActor) (map[string]any, *platform.AppError) {
+func (s *Service) Me(ctx context.Context, actor platform.RequestActor) (map[string]any, *platform.AppError) {
 	id, err := uuid.Parse(actor.UserID)
 	if err != nil {
 		return nil, platform.ErrUnauthorized("unauthenticated", "Harus login dulu.")
@@ -181,7 +178,7 @@ func (s *Service) Me(ctx context.Context, actor RequestActor) (map[string]any, *
 // (b) Mode kredensial: tanpa session — login + password_lama +
 //
 //	password_baru. Setelah berhasil, SEMUA session user dihapus.
-func (s *Service) GantiPassword(ctx context.Context, actor RequestActor, login, passwordLama, passwordBaru string) *platform.AppError {
+func (s *Service) GantiPassword(ctx context.Context, actor platform.RequestActor, login, passwordLama, passwordBaru string) *platform.AppError {
 	if len(passwordBaru) < minPasswordLength {
 		return platform.ErrBadRequest("validation_error", "Password baru minimal 8 karakter.")
 	}
@@ -218,7 +215,7 @@ func (s *Service) GantiPassword(ctx context.Context, actor RequestActor, login, 
 		return platform.ErrInternal("internal_error", "Gagal menyimpan password baru.")
 	}
 	_ = session.DestroyAllForUser(ctx, s.pool, u.ID)
-	s.catat(ctx, RequestActor{UserID: u.ID.String(), RealIP: actor.RealIP}, "auth.ganti-password", "users", u.ID.String(), nil)
+	platform.Catat(ctx, s.pool, platform.RequestActor{UserID: u.ID.String(), RealIP: actor.RealIP}, "auth.ganti-password", "users", u.ID.String(), nil)
 	return nil
 }
 

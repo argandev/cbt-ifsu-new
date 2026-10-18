@@ -3,31 +3,39 @@ package banksoal
 import (
 	"context"
 
-	"cbt-smk-v2/backend/internal/audit"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// RequestActor adalah identitas pemanggil untuk guard + audit log.
-// Dibangun handler dari echo.Context agar service bebas dari HTTP.
-type RequestActor struct {
-	UserID string
-	RealIP string
-}
 
 // Service adalah lapisan logika bisnis paket banksoal.
+// repository adalah kontrak penyimpanan yang dipakai Service.
+// (DIP: Service bergantung pada abstraksi, bukan *Repository konkrit.)
+type repository interface {
+	BankDipakaiPaket(ctx context.Context, bankID string) (bool, error)
+	CountBank(ctx context.Context, f BankFilter) (int, error)
+	CountSoal(ctx context.Context, bankID string, f SoalFilter) (int, error)
+	DeleteBank(ctx context.Context, id string) error
+	DeleteSoal(ctx context.Context, soalID, bankID string) error
+	InsertBank(ctx context.Context, kode, nama, mapelID string, kelasTingkat int, guruID any) (*bankRow, error)
+	InsertSoal(ctx context.Context, bankID string, in soalInput, level, status string) (*soalRow, error)
+	InsertSoalCSV(ctx context.Context, bankID string, row csvSoal) error
+	ListBank(ctx context.Context, f BankFilter, limit, offset int) ([]bankRow, error)
+	ListSoal(ctx context.Context, bankID string, f SoalFilter, limit, offset int) ([]soalRow, error)
+	LoadBank(ctx context.Context, id string) (*bankRow, bool, error)
+	LoadSoal(ctx context.Context, bankID, soalID string) (*soalRow, bool, error)
+	SetBankLock(ctx context.Context, id string, locked bool) error
+	UpdateBank(ctx context.Context, id, kode, nama, mapelID string, kelasTingkat int, guruID *string) error
+	UpdateSoal(ctx context.Context, soalID, bankID string, in soalInput, level, status string) error
+}
+
 type Service struct {
-	repo *Repository
+	repo repository
 	pool *pgxpool.Pool
 }
 
 // NewService membuat Service.
-func NewService(repo *Repository, pool *pgxpool.Pool) *Service {
+func NewService(repo repository, pool *pgxpool.Pool) *Service {
 	return &Service{repo: repo, pool: pool}
 }
 
-// catat menulis audit log. (Dulu: audit.Catat(c.Request().Context(), pool,
-// userID, ...) di handler.)
-func (s *Service) catat(ctx context.Context, actor RequestActor, aksi, entitas, entitasID string, detail any) {
-	_ = audit.Catat(ctx, s.pool, actor.UserID, aksi, entitas, entitasID, detail, actor.RealIP)
-}

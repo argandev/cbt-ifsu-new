@@ -50,10 +50,10 @@ func validJadwalID(c *echo.Context) (string, error) {
 	return id, nil
 }
 
-// actorFrom membangun RequestActor dari echo.Context.
-func actorFrom(c *echo.Context) RequestActor {
+// actorFrom membangun platform.RequestActor dari echo.Context.
+func actorFrom(c *echo.Context) platform.RequestActor {
 	userID, _, _, _, _ := audit.CurrentUser(c)
-	return RequestActor{UserID: userID, RealIP: c.RealIP()}
+	return platform.RequestActor{UserID: userID, RealIP: c.RealIP()}
 }
 
 // Register mendaftarkan endpoint analisis butir soal + nilai per kompetensi.

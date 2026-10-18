@@ -62,7 +62,7 @@ func validatePaket(in PaketInput) (paket, *platform.AppError) {
 }
 
 // ListPaket mengembalikan daftar paket ujian.
-func (s *Service) ListPaket(ctx context.Context, actor RequestActor, jenis, mapelID string) (any, *platform.AppError) {
+func (s *Service) ListPaket(ctx context.Context, actor platform.RequestActor, jenis, mapelID string) (any, *platform.AppError) {
 	items, err := s.repo.ListPaket(ctx, jenis, mapelID)
 	if err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal membaca paket.")
@@ -71,7 +71,7 @@ func (s *Service) ListPaket(ctx context.Context, actor RequestActor, jenis, mape
 }
 
 // CreatePaket membuat paket ujian baru.
-func (s *Service) CreatePaket(ctx context.Context, actor RequestActor, in PaketInput) (*paket, *platform.AppError) {
+func (s *Service) CreatePaket(ctx context.Context, actor platform.RequestActor, in PaketInput) (*paket, *platform.AppError) {
 	p, appErr := validatePaket(in)
 	if appErr != nil {
 		return nil, appErr
@@ -88,13 +88,13 @@ func (s *Service) CreatePaket(ctx context.Context, actor RequestActor, in PaketI
 		return nil, platform.ErrInternal("internal_error", "Gagal membuat paket.")
 	}
 	p.ID = id
-	s.catat(ctx, actor, "paket.create", "paket_ujian", id,
+	platform.Catat(ctx, s.pool, actor, "paket.create", "paket_ujian", id,
 		map[string]any{"kode": p.Kode, "nama": p.Nama})
 	return &p, nil
 }
 
 // GetPaket mengembalikan detail satu paket.
-func (s *Service) GetPaket(ctx context.Context, actor RequestActor, id string) (*paket, *platform.AppError) {
+func (s *Service) GetPaket(ctx context.Context, actor platform.RequestActor, id string) (*paket, *platform.AppError) {
 	p, err := s.repo.GetPaketDetail(ctx, id)
 	if err != nil {
 		return nil, platform.ErrNotFound("not_found", "Paket tidak ditemukan.")
@@ -103,7 +103,7 @@ func (s *Service) GetPaket(ctx context.Context, actor RequestActor, id string) (
 }
 
 // UpdatePaket mengubah paket ujian.
-func (s *Service) UpdatePaket(ctx context.Context, actor RequestActor, id string, in PaketInput) (map[string]any, *platform.AppError) {
+func (s *Service) UpdatePaket(ctx context.Context, actor platform.RequestActor, id string, in PaketInput) (map[string]any, *platform.AppError) {
 	p, appErr := validatePaket(in)
 	if appErr != nil {
 		return nil, appErr
@@ -129,13 +129,13 @@ func (s *Service) UpdatePaket(ctx context.Context, actor RequestActor, id string
 	if n == 0 {
 		return nil, platform.ErrNotFound("not_found", "Paket tidak ditemukan.")
 	}
-	s.catat(ctx, actor, "paket.update", "paket_ujian", id,
+	platform.Catat(ctx, s.pool, actor, "paket.update", "paket_ujian", id,
 		map[string]any{"kode": p.Kode, "nama": p.Nama})
 	return map[string]any{"id": id, "updated": true}, nil
 }
 
 // DeletePaket menghapus paket (ditolak bila masih dipakai jadwal).
-func (s *Service) DeletePaket(ctx context.Context, actor RequestActor, id string) (map[string]any, *platform.AppError) {
+func (s *Service) DeletePaket(ctx context.Context, actor platform.RequestActor, id string) (map[string]any, *platform.AppError) {
 	dipakai, _ := s.repo.CountJadwalPaket(ctx, id)
 	if dipakai > 0 {
 		return nil, platform.ErrConflict("conflict", "Paket masih dipakai jadwal ujian. Hapus jadwal dulu.")
@@ -147,12 +147,12 @@ func (s *Service) DeletePaket(ctx context.Context, actor RequestActor, id string
 	if n == 0 {
 		return nil, platform.ErrNotFound("not_found", "Paket tidak ditemukan.")
 	}
-	s.catat(ctx, actor, "paket.delete", "paket_ujian", id, nil)
+	platform.Catat(ctx, s.pool, actor, "paket.delete", "paket_ujian", id, nil)
 	return map[string]any{"id": id, "deleted": true}, nil
 }
 
 // ListPaketSoal mengembalikan susunan soal paket.
-func (s *Service) ListPaketSoal(ctx context.Context, actor RequestActor, paketID string) (any, *platform.AppError) {
+func (s *Service) ListPaketSoal(ctx context.Context, actor platform.RequestActor, paketID string) (any, *platform.AppError) {
 	items, err := s.repo.ListPaketSoal(ctx, paketID)
 	if err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal membaca susunan soal.")
@@ -161,7 +161,7 @@ func (s *Service) ListPaketSoal(ctx context.Context, actor RequestActor, paketID
 }
 
 // AddPaketSoal menambah satu soal ke paket (soal harus se-mapel).
-func (s *Service) AddPaketSoal(ctx context.Context, actor RequestActor, paketID, soalID string) (map[string]any, *platform.AppError) {
+func (s *Service) AddPaketSoal(ctx context.Context, actor platform.RequestActor, paketID, soalID string) (map[string]any, *platform.AppError) {
 	paketMapel, err := s.repo.PaketMapelID(ctx, paketID)
 	if err != nil {
 		return nil, platform.ErrNotFound("not_found", "Paket tidak ditemukan.")
@@ -178,13 +178,13 @@ func (s *Service) AddPaketSoal(ctx context.Context, actor RequestActor, paketID,
 		return nil, platform.ErrInternal("internal_error", "Gagal menambah soal ke paket.")
 	}
 	_ = s.repo.SinkronJumlahSoal(ctx, paketID)
-	s.catat(ctx, actor, "paket.soal.add", "paket_ujian", paketID,
+	platform.Catat(ctx, s.pool, actor, "paket.soal.add", "paket_ujian", paketID,
 		map[string]any{"soal_id": soalID})
 	return map[string]any{"paket_id": paketID, "soal_id": soalID, "urutan": maxUrutan + 1}, nil
 }
 
 // DeletePaketSoal menghapus soal dari paket.
-func (s *Service) DeletePaketSoal(ctx context.Context, actor RequestActor, paketID, soalID string) (map[string]any, *platform.AppError) {
+func (s *Service) DeletePaketSoal(ctx context.Context, actor platform.RequestActor, paketID, soalID string) (map[string]any, *platform.AppError) {
 	n, err := s.repo.DeletePaketSoal(ctx, paketID, soalID)
 	if err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal menghapus soal dari paket.")
@@ -193,13 +193,13 @@ func (s *Service) DeletePaketSoal(ctx context.Context, actor RequestActor, paket
 		return nil, platform.ErrNotFound("not_found", "Soal tidak ada di paket ini.")
 	}
 	_ = s.repo.SinkronJumlahSoal(ctx, paketID)
-	s.catat(ctx, actor, "paket.soal.delete", "paket_ujian", paketID,
+	platform.Catat(ctx, s.pool, actor, "paket.soal.delete", "paket_ujian", paketID,
 		map[string]any{"soal_id": soalID})
 	return map[string]any{"paket_id": paketID, "soal_id": soalID, "deleted": true}, nil
 }
 
 // GenerateAcak menambah soal acak dari bank mapel ke paket.
-func (s *Service) GenerateAcak(ctx context.Context, actor RequestActor, paketID string, jumlah int) (map[string]any, *platform.AppError) {
+func (s *Service) GenerateAcak(ctx context.Context, actor platform.RequestActor, paketID string, jumlah int) (map[string]any, *platform.AppError) {
 	paketMapel, err := s.repo.PaketMapelID(ctx, paketID)
 	if err != nil {
 		return nil, platform.ErrNotFound("not_found", "Paket tidak ditemukan.")
@@ -213,7 +213,7 @@ func (s *Service) GenerateAcak(ctx context.Context, actor RequestActor, paketID 
 		_ = s.repo.InsertPaketSoal(ctx, paketID, soalID, maxUrutan+i+1)
 	}
 	_ = s.repo.SinkronJumlahSoal(ctx, paketID)
-	s.catat(ctx, actor, "paket.generate_acak", "paket_ujian", paketID,
+	platform.Catat(ctx, s.pool, actor, "paket.generate_acak", "paket_ujian", paketID,
 		map[string]any{"diminta": jumlah, "ditambahkan": len(ids)})
 	resp := map[string]any{"paket_id": paketID, "diminta": jumlah, "ditambahkan": len(ids)}
 	if len(ids) < jumlah {

@@ -60,7 +60,7 @@ func (s *Service) GetJurusan(ctx context.Context, id string) (*jurusanDTO, *plat
 }
 
 // CreateJurusan menambah jurusan baru.
-func (s *Service) CreateJurusan(ctx context.Context, actor RequestActor, in jurusanInput) (*jurusanDTO, *platform.AppError) {
+func (s *Service) CreateJurusan(ctx context.Context, actor platform.RequestActor, in jurusanInput) (*jurusanDTO, *platform.AppError) {
 	if msg := in.validate(); msg != "" {
 		return nil, platform.NewAppError("validation_error", msg, http.StatusUnprocessableEntity)
 	}
@@ -71,12 +71,12 @@ func (s *Service) CreateJurusan(ctx context.Context, actor RequestActor, in juru
 		}
 		return nil, platform.ErrInternal("internal_error", "Gagal menambah jurusan.")
 	}
-	s.catat(ctx, actor, "create_jurusan", "jurusan", d.ID, map[string]any{"kode": d.Kode, "nama": d.Nama})
+	platform.Catat(ctx, s.pool, actor, "create_jurusan", "jurusan", d.ID, map[string]any{"kode": d.Kode, "nama": d.Nama})
 	return d, nil
 }
 
 // UpdateJurusan mengubah jurusan.
-func (s *Service) UpdateJurusan(ctx context.Context, actor RequestActor, id string, in jurusanInput) (*jurusanDTO, *platform.AppError) {
+func (s *Service) UpdateJurusan(ctx context.Context, actor platform.RequestActor, id string, in jurusanInput) (*jurusanDTO, *platform.AppError) {
 	if !validUUID(id) {
 		return nil, platform.ErrNotFound("not_found", "Jurusan tidak ditemukan.")
 	}
@@ -93,13 +93,13 @@ func (s *Service) UpdateJurusan(ctx context.Context, actor RequestActor, id stri
 		}
 		return nil, platform.ErrInternal("internal_error", "Gagal mengubah jurusan.")
 	}
-	s.catat(ctx, actor, "update_jurusan", "jurusan", d.ID, map[string]any{"kode": d.Kode, "nama": d.Nama})
+	platform.Catat(ctx, s.pool, actor, "update_jurusan", "jurusan", d.ID, map[string]any{"kode": d.Kode, "nama": d.Nama})
 	return d, nil
 }
 
 // DeleteJurusan menghapus jurusan. Ditolak 409 bila masih dipakai
 // kelas, mapel produktif, atau siswa.
-func (s *Service) DeleteJurusan(ctx context.Context, actor RequestActor, id string) (map[string]any, *platform.AppError) {
+func (s *Service) DeleteJurusan(ctx context.Context, actor platform.RequestActor, id string) (map[string]any, *platform.AppError) {
 	if !validUUID(id) {
 		return nil, platform.ErrNotFound("not_found", "Jurusan tidak ditemukan.")
 	}
@@ -128,7 +128,7 @@ func (s *Service) DeleteJurusan(ctx context.Context, actor RequestActor, id stri
 	if affected == 0 {
 		return nil, platform.ErrNotFound("not_found", "Jurusan tidak ditemukan.")
 	}
-	s.catat(ctx, actor, "delete_jurusan", "jurusan", id, nil)
+	platform.Catat(ctx, s.pool, actor, "delete_jurusan", "jurusan", id, nil)
 	return map[string]any{"deleted": true, "id": id}, nil
 }
 
@@ -188,7 +188,7 @@ func (s *Service) GetKelas(ctx context.Context, id string) (*kelasDTO, *platform
 }
 
 // CreateKelas menambah kelas baru.
-func (s *Service) CreateKelas(ctx context.Context, actor RequestActor, in kelasInput) (*kelasDTO, *platform.AppError) {
+func (s *Service) CreateKelas(ctx context.Context, actor platform.RequestActor, in kelasInput) (*kelasDTO, *platform.AppError) {
 	if msg := in.validate(); msg != "" {
 		return nil, platform.NewAppError("validation_error", msg, http.StatusUnprocessableEntity)
 	}
@@ -202,12 +202,12 @@ func (s *Service) CreateKelas(ctx context.Context, actor RequestActor, in kelasI
 		}
 		return nil, platform.ErrInternal("internal_error", "Gagal menambah kelas.")
 	}
-	s.catat(ctx, actor, "create_kelas", "kelas", d.ID, map[string]any{"nama": d.Nama})
+	platform.Catat(ctx, s.pool, actor, "create_kelas", "kelas", d.ID, map[string]any{"nama": d.Nama})
 	return d, nil
 }
 
 // UpdateKelas mengubah kelas.
-func (s *Service) UpdateKelas(ctx context.Context, actor RequestActor, id string, in kelasInput) (*kelasDTO, *platform.AppError) {
+func (s *Service) UpdateKelas(ctx context.Context, actor platform.RequestActor, id string, in kelasInput) (*kelasDTO, *platform.AppError) {
 	if !validUUID(id) {
 		return nil, platform.ErrNotFound("not_found", "Kelas tidak ditemukan.")
 	}
@@ -227,13 +227,13 @@ func (s *Service) UpdateKelas(ctx context.Context, actor RequestActor, id string
 		}
 		return nil, platform.ErrInternal("internal_error", "Gagal mengubah kelas.")
 	}
-	s.catat(ctx, actor, "update_kelas", "kelas", d.ID, map[string]any{"nama": d.Nama})
+	platform.Catat(ctx, s.pool, actor, "update_kelas", "kelas", d.ID, map[string]any{"nama": d.Nama})
 	return d, nil
 }
 
 // DeleteKelas menghapus kelas. Ditolak 409 bila masih dipakai siswa
 // atau jadwal ujian.
-func (s *Service) DeleteKelas(ctx context.Context, actor RequestActor, id string) (map[string]any, *platform.AppError) {
+func (s *Service) DeleteKelas(ctx context.Context, actor platform.RequestActor, id string) (map[string]any, *platform.AppError) {
 	if !validUUID(id) {
 		return nil, platform.ErrNotFound("not_found", "Kelas tidak ditemukan.")
 	}
@@ -258,7 +258,7 @@ func (s *Service) DeleteKelas(ctx context.Context, actor RequestActor, id string
 	if affected == 0 {
 		return nil, platform.ErrNotFound("not_found", "Kelas tidak ditemukan.")
 	}
-	s.catat(ctx, actor, "delete_kelas", "kelas", id, nil)
+	platform.Catat(ctx, s.pool, actor, "delete_kelas", "kelas", id, nil)
 	return map[string]any{"deleted": true, "id": id}, nil
 }
 
@@ -338,7 +338,7 @@ func (s *Service) GetMapel(ctx context.Context, id string) (*mapelDTO, *platform
 }
 
 // CreateMapel menambah mapel baru.
-func (s *Service) CreateMapel(ctx context.Context, actor RequestActor, in mapelInput) (*mapelDTO, *platform.AppError) {
+func (s *Service) CreateMapel(ctx context.Context, actor platform.RequestActor, in mapelInput) (*mapelDTO, *platform.AppError) {
 	if msg := in.validate(); msg != "" {
 		return nil, platform.NewAppError("validation_error", msg, http.StatusUnprocessableEntity)
 	}
@@ -352,12 +352,12 @@ func (s *Service) CreateMapel(ctx context.Context, actor RequestActor, in mapelI
 		}
 		return nil, platform.ErrInternal("internal_error", "Gagal menambah mapel.")
 	}
-	s.catat(ctx, actor, "create_mapel", "mapel", d.ID, map[string]any{"kode": d.Kode, "nama": d.Nama})
+	platform.Catat(ctx, s.pool, actor, "create_mapel", "mapel", d.ID, map[string]any{"kode": d.Kode, "nama": d.Nama})
 	return d, nil
 }
 
 // UpdateMapel mengubah mapel.
-func (s *Service) UpdateMapel(ctx context.Context, actor RequestActor, id string, in mapelInput) (*mapelDTO, *platform.AppError) {
+func (s *Service) UpdateMapel(ctx context.Context, actor platform.RequestActor, id string, in mapelInput) (*mapelDTO, *platform.AppError) {
 	if !validUUID(id) {
 		return nil, platform.ErrNotFound("not_found", "Mapel tidak ditemukan.")
 	}
@@ -377,13 +377,13 @@ func (s *Service) UpdateMapel(ctx context.Context, actor RequestActor, id string
 		}
 		return nil, platform.ErrInternal("internal_error", "Gagal mengubah mapel.")
 	}
-	s.catat(ctx, actor, "update_mapel", "mapel", d.ID, map[string]any{"kode": d.Kode, "nama": d.Nama})
+	platform.Catat(ctx, s.pool, actor, "update_mapel", "mapel", d.ID, map[string]any{"kode": d.Kode, "nama": d.Nama})
 	return d, nil
 }
 
 // DeleteMapel menghapus mapel. Ditolak 409 bila masih dipakai kompetensi,
 // kisi-kisi, bank soal, paket ujian, atau jadwal ujian (via paket).
-func (s *Service) DeleteMapel(ctx context.Context, actor RequestActor, id string) (map[string]any, *platform.AppError) {
+func (s *Service) DeleteMapel(ctx context.Context, actor platform.RequestActor, id string) (map[string]any, *platform.AppError) {
 	if !validUUID(id) {
 		return nil, platform.ErrNotFound("not_found", "Mapel tidak ditemukan.")
 	}
@@ -411,6 +411,6 @@ func (s *Service) DeleteMapel(ctx context.Context, actor RequestActor, id string
 	if affected == 0 {
 		return nil, platform.ErrNotFound("not_found", "Mapel tidak ditemukan.")
 	}
-	s.catat(ctx, actor, "delete_mapel", "mapel", id, nil)
+	platform.Catat(ctx, s.pool, actor, "delete_mapel", "mapel", id, nil)
 	return map[string]any{"deleted": true, "id": id}, nil
 }

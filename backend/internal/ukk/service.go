@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"cbt-smk-v2/backend/internal/audit"
 	"cbt-smk-v2/backend/internal/platform"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -83,20 +82,6 @@ func hitungAkhir(teori, praktik *float64) *float64 {
 	return &v
 }
 
-// Predikat dari nilai akhir 0-100 (sama dengan rekap: <70 Belum Tuntas,
-// 70-79 Cukup, 80-90 Baik, 91-100 Sangat Baik).
-func Predikat(nilai float64) string {
-	switch {
-	case nilai < 70:
-		return "Belum Tuntas"
-	case nilai < 80:
-		return "Cukup"
-	case nilai <= 90:
-		return "Baik"
-	default:
-		return "Sangat Baik"
-	}
-}
 
 // validNilai: nilai 0-100, bukan NaN/Inf.
 func validNilai(v *float64) bool {
@@ -177,7 +162,7 @@ func hitungNilaiInput(in nilaiInput) (praktik, akhir *float64, lulus *bool, pred
 	if akhir != nil {
 		l := *akhir >= 70
 		lulus = &l
-		p := Predikat(*akhir)
+		p := platform.Predikat(*akhir)
 		predikat = &p
 	}
 	return praktik, akhir, lulus, predikat
@@ -211,17 +196,38 @@ var allowedExt = map[string]bool{
 	".jpg": true, ".jpeg": true, ".png": true, ".zip": true,
 }
 
-// RequestActor adalah identitas pemanggil untuk guard + audit log.
-// Dibangun handler dari echo.Context agar service bebas dari HTTP.
-type RequestActor struct {
-	UserID string
-	Role   string
-	RealIP string
-}
 
 // Service adalah lapisan logika bisnis paket ukk.
+// repository adalah kontrak penyimpanan yang dipakai Service.
+// (DIP: Service bergantung pada abstraksi, bukan *Repository konkrit.)
+type repository interface {
+	CountAnak(ctx context.Context, id string) (nNilai, nBerkas, nSert int)
+	CountSertifikatUrut(ctx context.Context, jurusanID string, tahun int) (int64, error)
+	CountUkk(ctx context.Context, jurusanID, kelasID, status, search any) (int64, error)
+	DeleteUkk(ctx context.Context, id string) error
+	ExistsID(ctx context.Context, table, id string) bool
+	GetBerkasRow(ctx context.Context, berkasID, ukkID string) (*berkasRow, string, error)
+	GetLulus(ctx context.Context, ukkID, siswaID string) (*bool, error)
+	GetSertifikatRow(ctx context.Context, ukkID, siswaID string) (*sertifikatRow, error)
+	GetUkkRow(ctx context.Context, id string) (*ukkRow, error)
+	InsertBerkas(ctx context.Context, ukkID, siswaID, namaFile, relPath string, ukuran int64, userID string) (*berkasRow, error)
+	InsertSertifikat(ctx context.Context, ukkID, siswaID, nomor string) error
+	InsertUkk(ctx context.Context, nama, mapelID, kelasID, jurusanID string, tanggalArg, pengujiInternal, pengujiEksternal any, status string) (string, error)
+	ListBerkasRows(ctx context.Context, ukkID string, filterSiswa *string) ([]berkasRow, error)
+	ListNilaiRows(ctx context.Context, ukkID string) ([]nilaiRow, error)
+	ListPesertaRows(ctx context.Context, kelasID string) ([]pesertaRow, error)
+	ListUkkRows(ctx context.Context, jurusanID, kelasID, status, search any, limit, offset int) ([]ukkRow, error)
+	NilaiExists(ctx context.Context, ukkID, siswaID string) bool
+	ResolveSiswaID(ctx context.Context, userID string) (string, bool)
+	SiswaIDByNilaiID(ctx context.Context, nilaiID, ukkID string) (string, error)
+	SiswaNISNNama(ctx context.Context, siswaID string) (*string, *string)
+	UpdateNilaiRow(ctx context.Context, nilaiID string, in nilaiInput, praktik, akhir *float64, lulus *bool, predikat *string, userID string) (*nilaiRow, error)
+	UpdateUkk(ctx context.Context, id, nama, mapelID, kelasID, jurusanID string, tanggalArg, pengujiInternal, pengujiEksternal any, status string) error
+	UpsertNilaiRow(ctx context.Context, ukkID, siswaID string, in nilaiInput, praktik, akhir *float64, lulus *bool, predikat *string, userID string) (*nilaiRow, error)
+}
+
 type Service struct {
-	repo *Repository
+	repo repository
 	pool *pgxpool.Pool
 	// storageDir adalah akar direktori penyimpanan berkas
 	// (dari config.StorageDir; default "storage").
@@ -229,17 +235,13 @@ type Service struct {
 }
 
 // NewService membuat Service.
-func NewService(repo *Repository, pool *pgxpool.Pool, storageDir string) *Service {
+func NewService(repo repository, pool *pgxpool.Pool, storageDir string) *Service {
 	if storageDir == "" {
 		storageDir = "storage"
 	}
 	return &Service{repo: repo, pool: pool, storageDir: storageDir}
 }
 
-// catat menulis audit log. (Dulu: audit.Catat di handler.)
-func (s *Service) catat(ctx context.Context, actor RequestActor, aksi, entitas, entitasID string, detail any) {
-	_ = audit.Catat(ctx, s.pool, actor.UserID, aksi, entitas, entitasID, detail, actor.RealIP)
-}
 
 // ---------------------------------------------------------------------
 // CRUD ukk_ujian
@@ -259,7 +261,7 @@ func (s *Service) ListUkk(ctx context.Context, jurusanID, kelasID, status, searc
 }
 
 // CreateUkk membuat UKK baru. Mengembalikan baris lengkap (201 di handler).
-func (s *Service) CreateUkk(ctx context.Context, actor RequestActor, in ukkInput) (*ukkRow, *platform.AppError) {
+func (s *Service) CreateUkk(ctx context.Context, actor platform.RequestActor, in ukkInput) (*ukkRow, *platform.AppError) {
 	if msg := in.validate(); msg != "" {
 		return nil, platform.ErrBadRequest("validation_error", msg)
 	}
@@ -281,7 +283,7 @@ func (s *Service) CreateUkk(ctx context.Context, actor RequestActor, in ukkInput
 	if err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal membuat UKK.")
 	}
-	s.catat(ctx, actor, "ukk.buat", "ukk_ujian", id,
+	platform.Catat(ctx, s.pool, actor, "ukk.buat", "ukk_ujian", id,
 		map[string]any{"nama": strings.TrimSpace(in.Nama), "status": status})
 	u, err := s.repo.GetUkkRow(ctx, id)
 	if err != nil {
@@ -300,7 +302,7 @@ func (s *Service) GetUkk(ctx context.Context, id string) (*ukkRow, *platform.App
 }
 
 // UpdateUkk mengubah satu UKK.
-func (s *Service) UpdateUkk(ctx context.Context, actor RequestActor, id string, in ukkInput) (*ukkRow, *platform.AppError) {
+func (s *Service) UpdateUkk(ctx context.Context, actor platform.RequestActor, id string, in ukkInput) (*ukkRow, *platform.AppError) {
 	if msg := in.validate(); msg != "" {
 		return nil, platform.ErrBadRequest("validation_error", msg)
 	}
@@ -325,7 +327,7 @@ func (s *Service) UpdateUkk(ctx context.Context, actor RequestActor, id string, 
 		in.tanggalArg(), strPtrOrNil(in.PengujiInternal), strPtrOrNil(in.PengujiEksternal), status); err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal mengubah UKK.")
 	}
-	s.catat(ctx, actor, "ukk.ubah", "ukk_ujian", id,
+	platform.Catat(ctx, s.pool, actor, "ukk.ubah", "ukk_ujian", id,
 		map[string]any{"nama": strings.TrimSpace(in.Nama), "status_lama": old.Status, "status_baru": status})
 	u, err := s.repo.GetUkkRow(ctx, id)
 	if err != nil {
@@ -335,7 +337,7 @@ func (s *Service) UpdateUkk(ctx context.Context, actor RequestActor, id string, 
 }
 
 // DeleteUkk menghapus UKK yang belum punya nilai/berkas/sertifikat.
-func (s *Service) DeleteUkk(ctx context.Context, actor RequestActor, id string) *platform.AppError {
+func (s *Service) DeleteUkk(ctx context.Context, actor platform.RequestActor, id string) *platform.AppError {
 	if _, err := s.repo.GetUkkRow(ctx, id); err != nil {
 		return platform.ErrNotFound("not_found", "UKK tidak ditemukan.")
 	}
@@ -347,7 +349,7 @@ func (s *Service) DeleteUkk(ctx context.Context, actor RequestActor, id string) 
 	if err := s.repo.DeleteUkk(ctx, id); err != nil {
 		return platform.ErrInternal("internal_error", "Gagal menghapus UKK.")
 	}
-	s.catat(ctx, actor, "ukk.hapus", "ukk_ujian", id, nil)
+	platform.Catat(ctx, s.pool, actor, "ukk.hapus", "ukk_ujian", id, nil)
 	return nil
 }
 
@@ -383,7 +385,7 @@ func (s *Service) ListPeserta(ctx context.Context, ukkID string) ([]pesertaRow, 
 // UpsertNilai menangani POST /ukk/:id/nilai (upsert per siswa, nilaiID
 // kosong) dan PUT /ukk/:id/nilai/:nilaiId (per nilai id).
 // Mengembalikan baris + apakah baris baru dibuat (untuk status 201).
-func (s *Service) UpsertNilai(ctx context.Context, actor RequestActor, ukkID, nilaiID string, in nilaiInput) (*nilaiRow, bool, *platform.AppError) {
+func (s *Service) UpsertNilai(ctx context.Context, actor platform.RequestActor, ukkID, nilaiID string, in nilaiInput) (*nilaiRow, bool, *platform.AppError) {
 	if msg := in.validate(); msg != "" {
 		return nil, false, platform.ErrBadRequest("validation_error", msg)
 	}
@@ -432,7 +434,7 @@ func (s *Service) UpsertNilai(ctx context.Context, actor RequestActor, ukkID, ni
 	if override {
 		detail["override_ukk_selesai"] = true
 	}
-	s.catat(ctx, actor, "ukk.nilai", "ukk_nilai", row.ID, detail)
+	platform.Catat(ctx, s.pool, actor, "ukk.nilai", "ukk_nilai", row.ID, detail)
 	return row, created, nil
 }
 
@@ -464,7 +466,7 @@ func (s *Service) ListBerkas(ctx context.Context, ukkID string, filterSiswa *str
 
 // UploadBerkas menyimpan file fisik + mencatat di DB. (Dulu: bagian
 // akhir uploadBerkas setelah validasi input di handler.)
-func (s *Service) UploadBerkas(ctx context.Context, actor RequestActor, ukkID, siswaID string, fileHeader *multipart.FileHeader) (*berkasRow, *platform.AppError) {
+func (s *Service) UploadBerkas(ctx context.Context, actor platform.RequestActor, ukkID, siswaID string, fileHeader *multipart.FileHeader) (*berkasRow, *platform.AppError) {
 	src, err := fileHeader.Open()
 	if err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal membaca berkas upload.")
@@ -501,7 +503,7 @@ func (s *Service) UploadBerkas(ctx context.Context, actor RequestActor, ukkID, s
 		_ = os.Remove(absPath)
 		return nil, platform.ErrInternal("internal_error", "Gagal mencatat berkas UKK.")
 	}
-	s.catat(ctx, actor, "ukk.berkas.upload", "ukk_berkas", b.ID,
+	platform.Catat(ctx, s.pool, actor, "ukk.berkas.upload", "ukk_berkas", b.ID,
 		map[string]any{"ukk_id": ukkID, "siswa_id": siswaID, "nama_file": fileHeader.Filename, "ukuran": written})
 	return b, nil
 }
@@ -514,7 +516,7 @@ type BerkasUnduhan struct {
 
 // DownloadBerkas memeriksa akses + menyiapkan file untuk diunduh.
 // bolehStaf dihitung handler via audit.HasPermission (butuh echo.Context).
-func (s *Service) DownloadBerkas(ctx context.Context, actor RequestActor, ukkID, berkasID string, bolehStaf bool) (*BerkasUnduhan, *platform.AppError) {
+func (s *Service) DownloadBerkas(ctx context.Context, actor platform.RequestActor, ukkID, berkasID string, bolehStaf bool) (*BerkasUnduhan, *platform.AppError) {
 	if _, err := s.repo.GetUkkRow(ctx, ukkID); err != nil {
 		return nil, platform.ErrNotFound("not_found", "UKK tidak ditemukan.")
 	}
@@ -540,7 +542,7 @@ func (s *Service) DownloadBerkas(ctx context.Context, actor RequestActor, ukkID,
 	if _, err := os.Stat(absPath); err != nil {
 		return nil, platform.ErrNotFound("not_found", "File berkas tidak ditemukan di penyimpanan.")
 	}
-	s.catat(ctx, actor, "ukk.berkas.download", "ukk_berkas", b.ID,
+	platform.Catat(ctx, s.pool, actor, "ukk.berkas.download", "ukk_berkas", b.ID,
 		map[string]any{"ukk_id": ukkID, "siswa_id": b.SiswaID, "nama_file": b.NamaFile})
 	return &BerkasUnduhan{AbsPath: absPath, NamaFile: b.NamaFile}, nil
 }
@@ -550,7 +552,7 @@ func (s *Service) DownloadBerkas(ctx context.Context, actor RequestActor, ukkID,
 // ---------------------------------------------------------------------
 
 // GetSertifikat mengembalikan sertifikat satu siswa pada satu UKK.
-func (s *Service) GetSertifikat(ctx context.Context, actor RequestActor, ukkID, siswaID string, bolehStaf bool) (*sertifikatRow, *platform.AppError) {
+func (s *Service) GetSertifikat(ctx context.Context, actor platform.RequestActor, ukkID, siswaID string, bolehStaf bool) (*sertifikatRow, *platform.AppError) {
 	if _, err := s.repo.GetUkkRow(ctx, ukkID); err != nil {
 		return nil, platform.ErrNotFound("not_found", "UKK tidak ditemukan.")
 	}
@@ -572,7 +574,7 @@ func (s *Service) GetSertifikat(ctx context.Context, actor RequestActor, ukkID, 
 // CreateSertifikat menerbitkan sertifikat (idempoten) bagi siswa yang lulus.
 // Mengembalikan baris + apakah sertifikat baru diterbitkan (untuk 201)
 // atau sudah ada sebelumnya (untuk 200).
-func (s *Service) CreateSertifikat(ctx context.Context, actor RequestActor, ukkID, siswaID string) (*sertifikatRow, bool, *platform.AppError) {
+func (s *Service) CreateSertifikat(ctx context.Context, actor platform.RequestActor, ukkID, siswaID string) (*sertifikatRow, bool, *platform.AppError) {
 	ukk, err := s.repo.GetUkkRow(ctx, ukkID)
 	if err != nil {
 		return nil, false, platform.ErrNotFound("not_found", "UKK tidak ditemukan.")
@@ -611,7 +613,7 @@ func (s *Service) CreateSertifikat(ctx context.Context, actor RequestActor, ukkI
 		nomor := fmt.Sprintf("UKK/%d/%s/%04d", tahun, jurusanKode, count+1+int64(attempt))
 		lastErr = s.repo.InsertSertifikat(ctx, ukkID, siswaID, nomor)
 		if lastErr == nil {
-			s.catat(ctx, actor, "ukk.sertifikat.terbit", "ukk_sertifikat", siswaID,
+			platform.Catat(ctx, s.pool, actor, "ukk.sertifikat.terbit", "ukk_sertifikat", siswaID,
 				map[string]any{"ukk_id": ukkID, "siswa_id": siswaID, "nomor_sertifikat": nomor})
 			srt, err := s.repo.GetSertifikatRow(ctx, ukkID, siswaID)
 			if err != nil {

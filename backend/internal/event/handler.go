@@ -28,7 +28,7 @@
 //   - handler.go:        Echo handler + Register (file ini) + guard HTTP
 //   - handler_event.go:  handler CRUD event/ruangan + tugaskan ke jadwal
 //   - handler_kartu.go:  handler kartu peserta (JSON legacy)
-//   - service.go:        Service + RequestActor + catat
+//   - service.go:        Service + platform.RequestActor + catat
 //   - service_event.go:  logika bisnis event/ruangan + validasi input
 //   - service_kartu.go:  logika bisnis kartu + helper murni kartu
 //   - repository_event.go: DTO eventRow/ruanganRow + semua query SQL event
@@ -63,10 +63,10 @@ func NewHandler(svc *Service) *Handler {
 	return &Handler{svc: svc}
 }
 
-// actorFrom membangun RequestActor dari echo.Context.
-func actorFrom(c *echo.Context) RequestActor {
+// actorFrom membangun platform.RequestActor dari echo.Context.
+func actorFrom(c *echo.Context) platform.RequestActor {
 	userID, _, _, _, _ := audit.CurrentUser(c)
-	return RequestActor{UserID: userID, RealIP: c.RealIP()}
+	return platform.RequestActor{UserID: userID, RealIP: c.RealIP()}
 }
 
 // Register mendaftarkan endpoint event + ruangan + kartu peserta.

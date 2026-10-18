@@ -50,7 +50,7 @@ func NewHandler(svc *Service) *Handler {
 //   - handler.go:        Echo handler + Register (file ini) + guard HTTP
 //   - handler_bank.go:   handler CRUD bank + lock/unlock
 //   - handler_soal.go:   handler CRUD soal + import CSV
-//   - service.go:        Service + RequestActor + catat
+//   - service.go:        Service + platform.RequestActor + catat
 //   - service_bank.go:   logika bisnis bank (+ guard scope guru)
 //   - service_soal.go:   logika bisnis soal + import CSV
 //   - repository_bank.go: DTO bankRow + semua query SQL bank

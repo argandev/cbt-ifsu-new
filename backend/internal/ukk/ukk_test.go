@@ -1,6 +1,10 @@
 package ukk
 
-import "testing"
+import (
+	"testing"
+
+	"cbt-smk-v2/backend/internal/platform"
+)
 
 func f(v float64) *float64 { return &v }
 
@@ -63,8 +67,8 @@ func TestPredikatBatas(t *testing.T) {
 		{90.01, "Sangat Baik"}, {100, "Sangat Baik"},
 	}
 	for _, tc := range cases {
-		if got := Predikat(tc.nilai); got != tc.want {
-			t.Fatalf("Predikat(%v) = %q, harap %q", tc.nilai, got, tc.want)
+		if got := platform.Predikat(tc.nilai); got != tc.want {
+			t.Fatalf("platform.Predikat(%v) = %q, harap %q", tc.nilai, got, tc.want)
 		}
 	}
 }

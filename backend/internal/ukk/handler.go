@@ -126,10 +126,10 @@ func clientIP(c *echo.Context) string {
 	return c.Request().RemoteAddr
 }
 
-// actorFrom membangun RequestActor dari echo.Context.
-func actorFrom(c *echo.Context) RequestActor {
+// actorFrom membangun platform.RequestActor dari echo.Context.
+func actorFrom(c *echo.Context) platform.RequestActor {
 	userID, role, _, _, _ := audit.CurrentUser(c)
-	return RequestActor{UserID: userID, Role: role, RealIP: clientIP(c)}
+	return platform.RequestActor{UserID: userID, Role: role, RealIP: clientIP(c)}
 }
 
 // Register mendaftarkan endpoint UKK.

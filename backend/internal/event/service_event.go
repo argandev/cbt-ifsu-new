@@ -109,7 +109,7 @@ func (s *Service) ListEvent(ctx context.Context, jenis, search any, limit, offse
 }
 
 // CreateEvent membuat event baru.
-func (s *Service) CreateEvent(ctx context.Context, actor RequestActor, in eventInput) (*eventRow, *platform.AppError) {
+func (s *Service) CreateEvent(ctx context.Context, actor platform.RequestActor, in eventInput) (*eventRow, *platform.AppError) {
 	mulai, selesai, err := in.validate()
 	if err != nil {
 		return nil, platform.ErrBadRequest("validation_error", err.Error())
@@ -128,7 +128,7 @@ func (s *Service) CreateEvent(ctx context.Context, actor RequestActor, in eventI
 		}
 		return nil, platform.ErrInternal("internal_error", "Gagal membuat event.")
 	}
-	s.catat(ctx, actor, "event.create", "event", ev.ID,
+	platform.Catat(ctx, s.pool, actor, "event.create", "event", ev.ID,
 		map[string]any{"kode": ev.Kode, "nama": ev.Nama})
 	return ev, nil
 }
@@ -162,7 +162,7 @@ func (s *Service) LoadEventChecked(ctx context.Context, id string) (*eventRow, *
 // ApplyEventUpdate memvalidasi input + menyimpan perubahan event.
 // Dipanggil handler SETELAH bind body (agar 400 bind mendahului validasi,
 // sesuai urutan kode asal).
-func (s *Service) ApplyEventUpdate(ctx context.Context, actor RequestActor, ev *eventRow, in eventInput) (*eventRow, *platform.AppError) {
+func (s *Service) ApplyEventUpdate(ctx context.Context, actor platform.RequestActor, ev *eventRow, in eventInput) (*eventRow, *platform.AppError) {
 	mulai, selesai, err := in.validate()
 	if err != nil {
 		return nil, platform.ErrBadRequest("validation_error", err.Error())
@@ -180,14 +180,14 @@ func (s *Service) ApplyEventUpdate(ctx context.Context, actor RequestActor, ev *
 		}
 		return nil, platform.ErrInternal("internal_error", "Gagal mengubah event.")
 	}
-	s.catat(ctx, actor, "event.update", "event", ev.ID,
+	platform.Catat(ctx, s.pool, actor, "event.update", "event", ev.ID,
 		map[string]any{"kode": in.Kode, "nama": in.Nama})
 	updated, _, _ := loadEvent(ctx, s.pool, ev.ID)
 	return updated, nil
 }
 
 // DeleteEvent menghapus event. Ditolak 409 bila masih dipakai jadwal ujian.
-func (s *Service) DeleteEvent(ctx context.Context, actor RequestActor, id string) (map[string]any, *platform.AppError) {
+func (s *Service) DeleteEvent(ctx context.Context, actor platform.RequestActor, id string) (map[string]any, *platform.AppError) {
 	ev, found, err := loadEvent(ctx, s.pool, id)
 	if err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal membaca event.")
@@ -206,7 +206,7 @@ func (s *Service) DeleteEvent(ctx context.Context, actor RequestActor, id string
 	if err := s.repo.DeleteEvent(ctx, ev.ID); err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal menghapus event.")
 	}
-	s.catat(ctx, actor, "event.delete", "event", ev.ID,
+	platform.Catat(ctx, s.pool, actor, "event.delete", "event", ev.ID,
 		map[string]any{"kode": ev.Kode, "nama": ev.Nama})
 	return map[string]any{"deleted": true, "id": ev.ID}, nil
 }
@@ -227,7 +227,7 @@ func (s *Service) ListRuangan(ctx context.Context, search any, limit, offset int
 }
 
 // CreateRuangan membuat ruangan baru.
-func (s *Service) CreateRuangan(ctx context.Context, actor RequestActor, in ruanganInput) (*ruanganRow, *platform.AppError) {
+func (s *Service) CreateRuangan(ctx context.Context, actor platform.RequestActor, in ruanganInput) (*ruanganRow, *platform.AppError) {
 	if err := in.validate(); err != nil {
 		return nil, platform.ErrBadRequest("validation_error", err.Error())
 	}
@@ -245,7 +245,7 @@ func (s *Service) CreateRuangan(ctx context.Context, actor RequestActor, in ruan
 		}
 		return nil, platform.ErrInternal("internal_error", "Gagal membuat ruangan.")
 	}
-	s.catat(ctx, actor, "event.create", "ruangan", r.ID,
+	platform.Catat(ctx, s.pool, actor, "event.create", "ruangan", r.ID,
 		map[string]any{"kode": r.Kode, "nama": r.Nama})
 	return r, nil
 }
@@ -280,7 +280,7 @@ func (s *Service) LoadRuanganChecked(ctx context.Context, id string) (*ruanganRo
 // ApplyRuanganUpdate memvalidasi input + menyimpan perubahan ruangan.
 // Dipanggil handler SETELAH bind body (agar 400 bind mendahului validasi,
 // sesuai urutan kode asal).
-func (s *Service) ApplyRuanganUpdate(ctx context.Context, actor RequestActor, r *ruanganRow, in ruanganInput) (*ruanganRow, *platform.AppError) {
+func (s *Service) ApplyRuanganUpdate(ctx context.Context, actor platform.RequestActor, r *ruanganRow, in ruanganInput) (*ruanganRow, *platform.AppError) {
 	if err := in.validate(); err != nil {
 		return nil, platform.ErrBadRequest("validation_error", err.Error())
 	}
@@ -305,14 +305,14 @@ func (s *Service) ApplyRuanganUpdate(ctx context.Context, actor RequestActor, r 
 		}
 		return nil, platform.ErrInternal("internal_error", "Gagal mengubah ruangan.")
 	}
-	s.catat(ctx, actor, "event.update", "ruangan", r.ID,
+	platform.Catat(ctx, s.pool, actor, "event.update", "ruangan", r.ID,
 		map[string]any{"kode": in.Kode, "nama": in.Nama})
 	updated, _, _ := loadRuangan(ctx, s.pool, r.ID)
 	return updated, nil
 }
 
 // DeleteRuangan menghapus ruangan. Ditolak 409 bila masih dipakai jadwal ujian.
-func (s *Service) DeleteRuangan(ctx context.Context, actor RequestActor, id string) (map[string]any, *platform.AppError) {
+func (s *Service) DeleteRuangan(ctx context.Context, actor platform.RequestActor, id string) (map[string]any, *platform.AppError) {
 	r, found, err := loadRuangan(ctx, s.pool, id)
 	if err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal membaca ruangan.")
@@ -331,7 +331,7 @@ func (s *Service) DeleteRuangan(ctx context.Context, actor RequestActor, id stri
 	if err := s.repo.DeleteRuangan(ctx, r.ID); err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal menghapus ruangan.")
 	}
-	s.catat(ctx, actor, "event.delete", "ruangan", r.ID,
+	platform.Catat(ctx, s.pool, actor, "event.delete", "ruangan", r.ID,
 		map[string]any{"kode": r.Kode, "nama": r.Nama})
 	return map[string]any{"deleted": true, "id": r.ID}, nil
 }
@@ -359,7 +359,7 @@ func (s *Service) LoadJadwalKelasChecked(ctx context.Context, jadwalID string) (
 // ApplyAssign menetapkan/melepas event & ruangan pada jadwal.
 // Dipanggil handler SETELAH bind body (agar 400 bind mendahului validasi,
 // sesuai urutan kode asal).
-func (s *Service) ApplyAssign(ctx context.Context, actor RequestActor, jadwalID, kelasID, kelasNama string, eventID, ruanganID *string) (map[string]any, *platform.AppError) {
+func (s *Service) ApplyAssign(ctx context.Context, actor platform.RequestActor, jadwalID, kelasID, kelasNama string, eventID, ruanganID *string) (map[string]any, *platform.AppError) {
 	// Field tidak dikirim / string kosong = lepas penugasan (NULL).
 	var eventArg, ruanganArg any
 	if eventID != nil && strings.TrimSpace(*eventID) != "" {
@@ -400,7 +400,7 @@ func (s *Service) ApplyAssign(ctx context.Context, actor RequestActor, jadwalID,
 	if err := s.repo.AssignEventRuangan(ctx, jadwalID, eventArg, ruanganArg); err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal menugaskan event/ruangan ke jadwal.")
 	}
-	s.catat(ctx, actor, "event.assign", "jadwal_ujian", jadwalID,
+	platform.Catat(ctx, s.pool, actor, "event.assign", "jadwal_ujian", jadwalID,
 		map[string]any{"event_id": eventArg, "ruangan_id": ruanganArg})
 	j, _, _ := loadJadwalKartu(ctx, s.pool, jadwalID)
 	var evOut, rgOut any

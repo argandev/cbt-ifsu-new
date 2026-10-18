@@ -43,10 +43,10 @@ func NewHandler(svc *Service, cfg *config.Config) *Handler {
 	return &Handler{svc: svc, cfg: cfg}
 }
 
-// actorFrom membangun RequestActor dari echo.Context.
-func actorFrom(c *echo.Context) RequestActor {
+// actorFrom membangun platform.RequestActor dari echo.Context.
+func actorFrom(c *echo.Context) platform.RequestActor {
 	userID, _ := c.Get(middleware.CtxUserID).(string)
-	return RequestActor{UserID: userID, RealIP: c.RealIP(), UserAgent: c.Request().UserAgent()}
+	return platform.RequestActor{UserID: userID, RealIP: c.RealIP(), UserAgent: c.Request().UserAgent()}
 }
 
 // --- cookie -----------------------------------------------------------------

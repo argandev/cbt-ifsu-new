@@ -77,10 +77,10 @@ func NewHandler(svc *Service) *Handler {
 	return &Handler{svc: svc}
 }
 
-// actorFrom membangun RequestActor dari echo.Context.
-func actorFrom(c *echo.Context) RequestActor {
+// actorFrom membangun platform.RequestActor dari echo.Context.
+func actorFrom(c *echo.Context) platform.RequestActor {
 	uid, _, _, _ := currentUser(c)
-	return RequestActor{UserID: uid, RealIP: c.RealIP()}
+	return platform.RequestActor{UserID: uid, RealIP: c.RealIP()}
 }
 
 // ---------------------------------------------------------------------------

@@ -136,13 +136,20 @@ func (s *ticketStore) pakai(token string) (ticketInfo, bool) {
 // --- Service ----------------------------------------------------------------
 
 // Service adalah lapisan logika bisnis paket monitor.
+// repository adalah kontrak penyimpanan yang dipakai Service.
+// (DIP: Service bergantung pada abstraksi, bukan *Repository konkrit.)
+type repository interface {
+	JadwalExists(ctx context.Context, jadwalID string) (bool, error)
+	SnapshotPeserta(ctx context.Context, jadwalID string) (Snapshot, error)
+}
+
 type Service struct {
-	repo *Repository
+	repo repository
 	pool *pgxpool.Pool
 }
 
 // NewService membuat Service.
-func NewService(repo *Repository, pool *pgxpool.Pool) *Service {
+func NewService(repo repository, pool *pgxpool.Pool) *Service {
 	return &Service{repo: repo, pool: pool}
 }
 

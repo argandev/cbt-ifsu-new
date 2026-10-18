@@ -31,7 +31,7 @@ func (h *Handler) CreateBank(c *echo.Context) error {
 	if err := c.Bind(&in); err != nil {
 		return platform.WriteError(c, http.StatusBadRequest, "invalid_body", "Body JSON tidak valid.")
 	}
-	b, appErr := h.svc.CreateBank(c.Request().Context(), RequestActor{UserID: userID, RealIP: c.RealIP()}, role, in)
+	b, appErr := h.svc.CreateBank(c.Request().Context(), platform.RequestActor{UserID: userID, RealIP: c.RealIP()}, role, in)
 	if appErr != nil {
 		return platform.WriteAppError(c, appErr)
 	}
@@ -65,7 +65,7 @@ func (h *Handler) UpdateBank(c *echo.Context) error {
 	if err := c.Bind(&in); err != nil {
 		return platform.WriteError(c, http.StatusBadRequest, "invalid_body", "Body JSON tidak valid.")
 	}
-	updated, appErr := h.svc.ApplyBankUpdate(c.Request().Context(), RequestActor{UserID: userID, RealIP: c.RealIP()}, role, b, in)
+	updated, appErr := h.svc.ApplyBankUpdate(c.Request().Context(), platform.RequestActor{UserID: userID, RealIP: c.RealIP()}, role, b, in)
 	if appErr != nil {
 		return platform.WriteAppError(c, appErr)
 	}
@@ -78,7 +78,7 @@ func (h *Handler) DeleteBank(c *echo.Context) error {
 	if !ok {
 		return nil
 	}
-	out, appErr := h.svc.DeleteBank(c.Request().Context(), RequestActor{UserID: userID, RealIP: c.RealIP()}, role, c.Param("id"))
+	out, appErr := h.svc.DeleteBank(c.Request().Context(), platform.RequestActor{UserID: userID, RealIP: c.RealIP()}, role, c.Param("id"))
 	if appErr != nil {
 		return platform.WriteAppError(c, appErr)
 	}
@@ -103,7 +103,7 @@ func (h *Handler) setBankLock(c *echo.Context, locked bool) error {
 	if !ok {
 		return nil
 	}
-	b, appErr := h.svc.SetBankLock(c.Request().Context(), RequestActor{UserID: userID, RealIP: c.RealIP()}, role, c.Param("id"), locked)
+	b, appErr := h.svc.SetBankLock(c.Request().Context(), platform.RequestActor{UserID: userID, RealIP: c.RealIP()}, role, c.Param("id"), locked)
 	if appErr != nil {
 		return platform.WriteAppError(c, appErr)
 	}

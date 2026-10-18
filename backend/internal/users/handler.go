@@ -49,10 +49,10 @@ func NewHandler(svc *Service) *Handler {
 	return &Handler{svc: svc}
 }
 
-// actorFrom membangun RequestActor dari echo.Context.
-func actorFrom(c *echo.Context) RequestActor {
+// actorFrom membangun platform.RequestActor dari echo.Context.
+func actorFrom(c *echo.Context) platform.RequestActor {
 	userID, _, _, _, _ := audit.CurrentUser(c)
-	return RequestActor{UserID: userID, RealIP: c.RealIP()}
+	return platform.RequestActor{UserID: userID, RealIP: c.RealIP()}
 }
 
 // Register mendaftarkan endpoint Manajemen Pengguna (staf).

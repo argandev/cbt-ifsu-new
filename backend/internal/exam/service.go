@@ -12,33 +12,106 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"cbt-smk-v2/backend/internal/platform"
 	"cbt-smk-v2/backend/internal/grading"
 	"cbt-smk-v2/backend/internal/monitor"
 )
 
 // --- Service ----------------------------------------------------------------
 
-// RequestActor adalah identitas pemanggil untuk guard + audit log.
-// Dibangun handler dari echo.Context agar service bebas dari HTTP
-// (pola paket users).
-type RequestActor struct {
-	UserID string
-	RealIP string
-}
 
 // Service adalah lapisan logika bisnis paket exam.
+// repository adalah kontrak penyimpanan yang dipakai Service.
+// (DIP: Service bergantung pada abstraksi, bukan *Repository konkrit.)
+type repository interface {
+	AktifkanJadwal(ctx context.Context, q querier, id string) error
+	AttemptMonitorCounts(ctx context.Context, attemptID string) (dijawab, ragu, pelanggaran int)
+	AttemptRingkasan(ctx context.Context, attemptID, paketID string) (dijawab, ragu, total int)
+	AttemptStatusJadwal(ctx context.Context, q querier, attemptID string) (status, jadwalID string)
+	BekukanTimer(ctx context.Context, q querier, id string) error
+	BlokirAttempt(ctx context.Context, attemptID string) error
+	CatatAudit(ctx context.Context, actorID, aksi, entitas, entitasID string, detail any, ip string)
+	CountAttemptJadwal(ctx context.Context, id string) (int, error)
+	CountJadwalPaket(ctx context.Context, paketID string) (int, error)
+	CountSoalMapelLain(ctx context.Context, paketID, mapelID string) (int, error)
+	CountUsulanMenunggu(ctx context.Context, attemptID string) (int, error)
+	DeleteJadwal(ctx context.Context, id string) (int64, error)
+	DeletePaket(ctx context.Context, paketID string) (int64, error)
+	DeletePaketSoal(ctx context.Context, paketID, soalID string) (int64, error)
+	DraftKeAktif(ctx context.Context, q querier, jadwalID string) error
+	FindAttemptByStatus(ctx context.Context, jadwalID, siswaID, status string) (attempt, error)
+	GetAttempt(ctx context.Context, id string) (attempt, error)
+	GetJadwal(ctx context.Context, id string) (jadwal, error)
+	GetJawabanKoreksi(ctx context.Context, jawabanID string) (attemptID, soalID string, bobot float64, err error)
+	GetPaketDetail(ctx context.Context, id string) (paket, error)
+	InsertAttempt(ctx context.Context, q querier, attemptID, jadwalID, siswaID string, selesai time.Time, urutanSoalJSON, urutanOpsiJSON []byte) error
+	InsertJadwal(ctx context.Context, j jadwal) (string, error)
+	InsertPaket(ctx context.Context, p paket) (string, error)
+	InsertPaketSoal(ctx context.Context, paketID, soalID string, urutan int) error
+	InsertPelanggaran(ctx context.Context, attemptID, jenis, detail string) error
+	InsertUsulan(ctx context.Context, attemptID, pengawasID, alasan string) (string, error)
+	InsertUsulanDisetujui(ctx context.Context, q querier, attemptID, uid, alasan string)
+	JadwalStatus(ctx context.Context, jadwalID string) string
+	JadwalStatusOnly(ctx context.Context, id string) (string, error)
+	KelasExists(ctx context.Context, kelasID string) (bool, error)
+	KelasSiswa(ctx context.Context, siswaID string) (string, bool)
+	LanjutkanAttempt(ctx context.Context, q querier, attemptID string, sisa int) error
+	ListHasilJawaban(ctx context.Context, attemptID string) ([]hasilJawabanRow, error)
+	ListJadwal(ctx context.Context, status, kelasID, tanggal string) ([]jadwalItem, error)
+	ListJawabanNilai(ctx context.Context, attemptID string) ([]jawabanNilaiRow, error)
+	ListJawabanTersimpan(ctx context.Context, attemptID string) ([]jawabanTersimpanRow, error)
+	ListKoreksi(ctx context.Context, jadwalID string) ([]koreksiItem, error)
+	ListPaket(ctx context.Context, jenis, mapelID string) ([]paket, error)
+	ListPaketSoal(ctx context.Context, paketID string) ([]paketSoalItem, error)
+	ListSoalAcak(ctx context.Context, mapelID, paketID string, jumlah int) ([]string, error)
+	ListSoalDetail(ctx context.Context, paketID string) ([]soalDetailRow, error)
+	ListSoalHasilPaket(ctx context.Context, paketID string) ([]soalHasilRow, error)
+	ListSoalNilaiKosong(ctx context.Context, attemptID string) ([]soalNilaiRow, error)
+	ListSoalPaket(ctx context.Context, paketID string) ([]soalPaketRow, error)
+	ListUjianAktif(ctx context.Context, siswaID, kelasID string) ([]ujianAktifItem, error)
+	ListUsulanUnblock(ctx context.Context, jadwalID string) ([]usulanItem, error)
+	MapelExists(ctx context.Context, mapelID string) (bool, error)
+	MaxPelanggaran(ctx context.Context) int
+	MaxUrutanPaketSoal(ctx context.Context, paketID string) (int, error)
+	PaketExists(ctx context.Context, paketID string) (bool, error)
+	PaketMapelID(ctx context.Context, paketID string) (string, error)
+	PaketSoalExists(ctx context.Context, paketID, soalID string) (bool, error)
+	PauseJadwalStatus(ctx context.Context, q querier, id string) error
+	PelanggaranTerakhir(ctx context.Context, attemptID string) (*time.Time, int)
+	PulihkanTimer(ctx context.Context, q querier, id string) error
+	RaguLama(ctx context.Context, attemptID, soalID string) bool
+	SetujuiUsulan(ctx context.Context, q querier, usulanID, uid string)
+	SinkronJumlahSoal(ctx context.Context, paketID string) error
+	SiswaIDByUser(ctx context.Context, userID string) (string, error)
+	SoalMapelID(ctx context.Context, soalID string) (string, error)
+	SoalUntukSkor(ctx context.Context, soalID string) (tipe string, kunci, bobotRaw, tampilan []byte, err error)
+	TampilHasilEfektif(ctx context.Context, paketTampil bool) bool
+	TandaiSelesai(ctx context.Context, attemptID string, nilai float64) error
+	TokenExpiryDetik(ctx context.Context) int
+	ToleransiTelatMenit(ctx context.Context) int
+	UpdateJadwal(ctx context.Context, id string, j jadwal) (int64, error)
+	UpdateJawabanPoin(ctx context.Context, q querier, jawabanID string, poin float64) error
+	UpdateNilaiAkhir(ctx context.Context, attemptID string, nilai float64) error
+	UpdatePaket(ctx context.Context, id string, p paket) (int64, error)
+	UpdateToken(ctx context.Context, id, hash string, expiry time.Time) error
+	UpsertJawaban(ctx context.Context, attemptID, soalID string, jawaban []byte, ragu bool, poinArg any, dikoreksi bool) error
+	UpsertNilaiAkhir(ctx context.Context, attemptID, jadwalID, siswaID string, nilai float64) error
+	UpsertRagu(ctx context.Context, attemptID, soalID string, ragu bool) error
+	UsulanMenungguTerbaru(ctx context.Context, q querier, attemptID string) (string, error)
+}
+
 type Service struct {
-	repo *Repository
+	repo repository
 	pool *pgxpool.Pool
 }
 
 // NewService membuat Service.
-func NewService(repo *Repository, pool *pgxpool.Pool) *Service {
+func NewService(repo repository, pool *pgxpool.Pool) *Service {
 	return &Service{repo: repo, pool: pool}
 }
 
 // catat menulis audit log. (Dulu: auditCatat di exam.go.)
-func (s *Service) catat(ctx context.Context, actor RequestActor, aksi, entitas, entitasID string, detail any) {
+func (s *Service) catat(ctx context.Context, actor platform.RequestActor, aksi, entitas, entitasID string, detail any) {
 	s.repo.CatatAudit(ctx, actor.UserID, aksi, entitas, entitasID, detail, actor.RealIP)
 }
 

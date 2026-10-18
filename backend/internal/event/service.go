@@ -3,31 +3,38 @@ package event
 import (
 	"context"
 
-	"cbt-smk-v2/backend/internal/audit"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// RequestActor adalah identitas pemanggil untuk guard + audit log.
-// Dibangun handler dari echo.Context agar service bebas dari HTTP.
-type RequestActor struct {
-	UserID string
-	RealIP string
-}
 
 // Service adalah lapisan logika bisnis paket event.
+// repository adalah kontrak penyimpanan yang dipakai Service.
+// (DIP: Service bergantung pada abstraksi, bukan *Repository konkrit.)
+type repository interface {
+	AssignEventRuangan(ctx context.Context, jadwalID string, eventArg, ruanganArg any) error
+	CountEvent(ctx context.Context, jenis, search any) (int, error)
+	CountRuangan(ctx context.Context, search any) (int, error)
+	CountSiswaAktifKelas(ctx context.Context, kelasID string) (int, error)
+	DeleteEvent(ctx context.Context, id string) error
+	DeleteRuangan(ctx context.Context, id string) error
+	GetJadwalKelas(ctx context.Context, jadwalID string) (kelasID, kelasNama string, err error)
+	InsertEvent(ctx context.Context, in eventInput, mulai, selesai any) (*eventRow, error)
+	InsertRuangan(ctx context.Context, in ruanganInput) (*ruanganRow, error)
+	ListEvent(ctx context.Context, jenis, search any, limit, offset int) ([]eventRow, error)
+	ListRuangan(ctx context.Context, search any, limit, offset int) ([]ruanganRow, error)
+	RuanganJadwalPenuh(ctx context.Context, ruanganID string, kapasitasBaru int) (string, error)
+	UpdateEvent(ctx context.Context, id string, in eventInput, mulai, selesai any) error
+	UpdateRuangan(ctx context.Context, id string, in ruanganInput) error
+}
+
 type Service struct {
-	repo *Repository
+	repo repository
 	pool *pgxpool.Pool
 }
 
 // NewService membuat Service.
-func NewService(repo *Repository, pool *pgxpool.Pool) *Service {
+func NewService(repo repository, pool *pgxpool.Pool) *Service {
 	return &Service{repo: repo, pool: pool}
 }
 
-// catat menulis audit log. (Dulu: audit.Catat(ctx, pool, userID, ...)
-// di handler.)
-func (s *Service) catat(ctx context.Context, actor RequestActor, aksi, entitas, entitasID string, detail any) {
-	_ = audit.Catat(ctx, s.pool, actor.UserID, aksi, entitas, entitasID, detail, actor.RealIP)
-}

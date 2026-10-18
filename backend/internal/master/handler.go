@@ -39,7 +39,7 @@
 //   - handler_siswa.go:     handler Siswa
 //   - handler_import.go:    handler Import Siswa (info + upload CSV)
 //   - handler_referensi.go: handler Kompetensi/Kisi-kisi
-//   - service.go:           Service + RequestActor + catat + hashPassword
+//   - service.go:           Service + platform.RequestActor + catat + hashPassword
 //   - service_master.go:    logika bisnis Jurusan/Kelas/Mapel
 //   - service_guru.go:      logika bisnis Guru
 //   - service_siswa.go:     logika bisnis Siswa (+ akun login siswa)
@@ -62,6 +62,7 @@ import (
 	"strings"
 
 	"cbt-smk-v2/backend/db"
+	"cbt-smk-v2/backend/internal/platform"
 	"cbt-smk-v2/backend/internal/audit"
 	"cbt-smk-v2/backend/internal/config"
 
@@ -79,10 +80,10 @@ func NewHandler(svc *Service) *Handler {
 	return &Handler{svc: svc}
 }
 
-// actorFrom membangun RequestActor dari echo.Context.
-func actorFrom(c *echo.Context) RequestActor {
+// actorFrom membangun platform.RequestActor dari echo.Context.
+func actorFrom(c *echo.Context) platform.RequestActor {
 	userID, _, _, _, _ := audit.CurrentUser(c)
-	return RequestActor{UserID: userID, RealIP: c.RealIP()}
+	return platform.RequestActor{UserID: userID, RealIP: c.RealIP()}
 }
 
 // Register mendaftarkan endpoint Master Data.

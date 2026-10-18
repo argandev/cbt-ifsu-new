@@ -6,7 +6,6 @@ import (
 	"errors"
 	"strings"
 
-	"cbt-smk-v2/backend/internal/audit"
 	"cbt-smk-v2/backend/internal/platform"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -89,28 +88,25 @@ func validateSetting(key string, raw json.RawMessage) (any, bool) {
 	return nil, false
 }
 
-// RequestActor adalah identitas pemanggil untuk audit log.
-// Dibangun handler dari echo.Context agar service bebas dari HTTP.
-type RequestActor struct {
-	UserID string
-	RealIP string
-}
 
 // Service adalah lapisan logika bisnis paket settings.
+// repository adalah kontrak penyimpanan yang dipakai Service.
+// (DIP: Service bergantung pada abstraksi, bukan *Repository konkrit.)
+type repository interface {
+	BacaSemua(ctx context.Context) (map[string]json.RawMessage, error)
+	Simpan(ctx context.Context, normalized map[string]any) error
+}
+
 type Service struct {
-	repo *Repository
+	repo repository
 	pool *pgxpool.Pool
 }
 
 // NewService membuat Service.
-func NewService(repo *Repository, pool *pgxpool.Pool) *Service {
+func NewService(repo repository, pool *pgxpool.Pool) *Service {
 	return &Service{repo: repo, pool: pool}
 }
 
-// catat menulis audit log. (Dulu: audit.Catat di handler.)
-func (s *Service) catat(ctx context.Context, actor RequestActor, aksi, entitas, entitasID string, detail any) {
-	_ = audit.Catat(ctx, s.pool, actor.UserID, aksi, entitas, entitasID, detail, actor.RealIP)
-}
 
 // GetAll mengembalikan gabungan default + nilai tersimpan.
 func (s *Service) GetAll(ctx context.Context) (map[string]any, *platform.AppError) {
@@ -130,7 +126,7 @@ func (s *Service) GetAll(ctx context.Context) (map[string]any, *platform.AppErro
 
 // Update memvalidasi + menyimpan batch settings. updates tidak boleh kosong
 // (dicek handler). Pesan error dipertahankan.
-func (s *Service) Update(ctx context.Context, actor RequestActor, updates map[string]json.RawMessage) (map[string]any, *platform.AppError) {
+func (s *Service) Update(ctx context.Context, actor platform.RequestActor, updates map[string]json.RawMessage) (map[string]any, *platform.AppError) {
 	known := DefaultSettings()
 	normalized := map[string]any{}
 	for key, raw := range updates {
@@ -150,7 +146,7 @@ func (s *Service) Update(ctx context.Context, actor RequestActor, updates map[st
 		}
 		return nil, platform.ErrInternal("internal_error", "Gagal menyimpan settings.")
 	}
-	s.catat(ctx, actor, "settings.update", "settings", "",
+	platform.Catat(ctx, s.pool, actor, "settings.update", "settings", "",
 		map[string]any{"updated": normalized})
 	return map[string]any{"updated": normalized}, nil
 }

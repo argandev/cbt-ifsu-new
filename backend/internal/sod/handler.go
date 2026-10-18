@@ -49,11 +49,11 @@ func NewHandler(svc *Service) *Handler {
 	return &Handler{svc: svc}
 }
 
-// actorFrom membangun RequestActor dari echo.Context. Pemanggil sudah
+// actorFrom membangun platform.RequestActor dari echo.Context. Pemanggil sudah
 // dipastikan login (cek 401 di handler), jadi userID tidak kosong.
-func actorFrom(c *echo.Context) RequestActor {
+func actorFrom(c *echo.Context) platform.RequestActor {
 	userID, _, _, _, _ := audit.CurrentUser(c)
-	return RequestActor{UserID: userID, RealIP: c.RealIP()}
+	return platform.RequestActor{UserID: userID, RealIP: c.RealIP()}
 }
 
 // Register mendaftarkan endpoint SoD override.

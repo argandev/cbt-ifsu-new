@@ -8,7 +8,6 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"cbt-smk-v2/backend/internal/audit"
 	"cbt-smk-v2/backend/internal/grading"
 	"cbt-smk-v2/backend/internal/platform"
 
@@ -634,28 +633,25 @@ func computeKompetensi(jadwalID string, soals []soalInput, attempts []attemptInp
 // Service
 // ---------------------------------------------------------------------------
 
-// RequestActor adalah identitas pemanggil untuk audit log.
-// Dibangun handler dari echo.Context agar service bebas dari HTTP.
-type RequestActor struct {
-	UserID string
-	RealIP string
-}
 
 // Service adalah lapisan logika bisnis paket analisis.
+// repository adalah kontrak penyimpanan yang dipakai Service.
+// (DIP: Service bergantung pada abstraksi, bukan *Repository konkrit.)
+type repository interface {
+	LoadDasar(ctx context.Context, jadwalID string) (soals []soalInput, attempts []attemptInput, jawabans []jawabanInput, err error)
+	LoadSiswa(ctx context.Context, jadwalID string) (map[string]siswaInput, error)
+}
+
 type Service struct {
-	repo *Repository
+	repo repository
 	pool *pgxpool.Pool
 }
 
 // NewService membuat Service.
-func NewService(repo *Repository, pool *pgxpool.Pool) *Service {
+func NewService(repo repository, pool *pgxpool.Pool) *Service {
 	return &Service{repo: repo, pool: pool}
 }
 
-// catat menulis audit log. (Dulu: audit.Catat di handler.)
-func (s *Service) catat(ctx context.Context, actor RequestActor, aksi, entitas, entitasID string, detail any) {
-	_ = audit.Catat(ctx, s.pool, actor.UserID, aksi, entitas, entitasID, detail, actor.RealIP)
-}
 
 // muat memuat data dasar; memetakan error ke AppError sesuai endpoint.
 func (s *Service) muat(ctx context.Context, jadwalID, pesanGagal string) ([]soalInput, []attemptInput, []jawabanInput, *platform.AppError) {
@@ -680,12 +676,12 @@ func (s *Service) Analisis(ctx context.Context, jadwalID, role string) (analisis
 }
 
 // AnalisisExport seperti Analisis + mencatat audit export.
-func (s *Service) AnalisisExport(ctx context.Context, actor RequestActor, jadwalID, role string) (analisisResult, *platform.AppError) {
+func (s *Service) AnalisisExport(ctx context.Context, actor platform.RequestActor, jadwalID, role string) (analisisResult, *platform.AppError) {
 	hasil, appErr := s.Analisis(ctx, jadwalID, role)
 	if appErr != nil {
 		return analisisResult{}, appErr
 	}
-	s.catat(ctx, actor, "analisis.export", "analisis", jadwalID,
+	platform.Catat(ctx, s.pool, actor, "analisis.export", "analisis", jadwalID,
 		map[string]any{"jadwal_id": jadwalID, "jumlah_soal": hasil.JumlahSoal, "jumlah_peserta": hasil.JumlahPeserta})
 	return hasil, nil
 }
@@ -720,12 +716,12 @@ func (s *Service) Kompetensi(ctx context.Context, jadwalID, role, siswaID string
 }
 
 // KompetensiExport seperti Kompetensi + mencatat audit export.
-func (s *Service) KompetensiExport(ctx context.Context, actor RequestActor, jadwalID, role, siswaID string) (kompetensiResult, *platform.AppError) {
+func (s *Service) KompetensiExport(ctx context.Context, actor platform.RequestActor, jadwalID, role, siswaID string) (kompetensiResult, *platform.AppError) {
 	hasil, appErr := s.Kompetensi(ctx, jadwalID, role, siswaID)
 	if appErr != nil {
 		return kompetensiResult{}, appErr
 	}
-	s.catat(ctx, actor, "rekap.export", "kompetensi", jadwalID,
+	platform.Catat(ctx, s.pool, actor, "rekap.export", "kompetensi", jadwalID,
 		map[string]any{"jadwal_id": jadwalID, "jumlah_siswa": hasil.JumlahSiswa})
 	return hasil, nil
 }

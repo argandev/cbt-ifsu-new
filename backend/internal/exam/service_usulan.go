@@ -10,7 +10,7 @@ import (
 )
 
 // ListUsulanUnblock mengembalikan usulan unblock satu jadwal.
-func (s *Service) ListUsulanUnblock(ctx context.Context, actor RequestActor, jadwalID string) (any, *platform.AppError) {
+func (s *Service) ListUsulanUnblock(ctx context.Context, actor platform.RequestActor, jadwalID string) (any, *platform.AppError) {
 	items, err := s.repo.ListUsulanUnblock(ctx, jadwalID)
 	if err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal membaca usulan unblock.")
@@ -19,7 +19,7 @@ func (s *Service) ListUsulanUnblock(ctx context.Context, actor RequestActor, jad
 }
 
 // CreateUsulanUnblock mencatat usulan unblock dari pengawas/proktor/admin.
-func (s *Service) CreateUsulanUnblock(ctx context.Context, actor RequestActor, jadwalID, attemptID, alasan string) (map[string]any, *platform.AppError) {
+func (s *Service) CreateUsulanUnblock(ctx context.Context, actor platform.RequestActor, jadwalID, attemptID, alasan string) (map[string]any, *platform.AppError) {
 	alasan = strings.TrimSpace(alasan)
 	if attemptID == "" || alasan == "" {
 		return nil, platform.ErrBadRequest("validation_error", "attempt_id dan alasan wajib diisi.")
@@ -42,14 +42,14 @@ func (s *Service) CreateUsulanUnblock(ctx context.Context, actor RequestActor, j
 	if err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal menyimpan usulan unblock.")
 	}
-	s.catat(ctx, actor, "jadwal.usulan_unblock", "attempt", attemptID,
+	platform.Catat(ctx, s.pool, actor, "jadwal.usulan_unblock", "attempt", attemptID,
 		map[string]any{"jadwal_id": jadwalID, "alasan": alasan})
 	monitor.Broadcast(jadwalID, map[string]any{"type": "usulan_unblock", "jadwal_id": jadwalID, "attempt_id": attemptID})
 	return map[string]any{"id": id, "attempt_id": attemptID, "status": "menunggu"}, nil
 }
 
 // UnblockAttempt meng-unblock attempt (proktor/admin): LANJUT sisa waktu.
-func (s *Service) UnblockAttempt(ctx context.Context, actor RequestActor, jadwalID, attemptID, alasan string) (map[string]any, *platform.AppError) {
+func (s *Service) UnblockAttempt(ctx context.Context, actor platform.RequestActor, jadwalID, attemptID, alasan string) (map[string]any, *platform.AppError) {
 	alasan = strings.TrimSpace(alasan)
 	if attemptID == "" || alasan == "" {
 		return nil, platform.ErrBadRequest("validation_error", "attempt_id dan alasan wajib diisi.")
@@ -102,7 +102,7 @@ func (s *Service) UnblockAttempt(ctx context.Context, actor RequestActor, jadwal
 	if err := tx.Commit(ctx); err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal unblock attempt.")
 	}
-	s.catat(ctx, actor, "jadwal.unblock", "attempt", attemptID,
+	platform.Catat(ctx, s.pool, actor, "jadwal.unblock", "attempt", attemptID,
 		map[string]any{"jadwal_id": jadwalID, "alasan": alasan, "sisa_waktu_detik": sisa})
 	baru, _ := s.repo.GetAttempt(ctx, attemptID)
 	s.broadcastAttempt(ctx, baru)

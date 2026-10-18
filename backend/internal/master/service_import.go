@@ -20,7 +20,7 @@ import (
 //
 // IDEMPOTEN (Fase 3, BUG-02): NISN yang sudah ada di DB dihitung sebagai
 // `sudah_ada` (bukan error, bukan duplikat, tidak buat user baru).
-func (s *Service) ImportSiswa(ctx context.Context, actor RequestActor, file multipart.File) (*importResult, *platform.AppError) {
+func (s *Service) ImportSiswa(ctx context.Context, actor platform.RequestActor, file multipart.File) (*importResult, *platform.AppError) {
 	reader := csv.NewReader(io.LimitReader(file, (maxImportFileMB<<20)+1))
 	reader.FieldsPerRecord = -1 // baris pendek/panjang ditangani manual per kolom
 	reader.TrimLeadingSpace = true
@@ -146,6 +146,6 @@ func (s *Service) ImportSiswa(ctx context.Context, actor RequestActor, file mult
 	if err := tx.Commit(ctx); err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal menyelesaikan import.")
 	}
-	s.catat(ctx, actor, "import_siswa", "siswa", "", map[string]any{"sukses": result.Sukses, "gagal": result.Gagal, "sudah_ada": result.SudahAda})
+	platform.Catat(ctx, s.pool, actor, "import_siswa", "siswa", "", map[string]any{"sukses": result.Sukses, "gagal": result.Gagal, "sudah_ada": result.SudahAda})
 	return result, nil
 }

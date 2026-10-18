@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"cbt-smk-v2/backend/internal/audit"
 	"cbt-smk-v2/backend/internal/auth"
 	"cbt-smk-v2/backend/internal/platform"
 	"cbt-smk-v2/backend/internal/session"
@@ -102,12 +101,6 @@ func validUUID(s string) bool {
 
 // --- Service ----------------------------------------------------------------
 
-// RequestActor adalah identitas pemanggil untuk guard + audit log.
-// Dibangun handler dari echo.Context agar service bebas dari HTTP.
-type RequestActor struct {
-	UserID string
-	RealIP string
-}
 
 // CreateInput adalah input pembuatan akun staf.
 type CreateInput struct {
@@ -126,20 +119,32 @@ type UpdateInput struct {
 }
 
 // Service adalah lapisan logika bisnis paket users.
+// repository adalah kontrak penyimpanan yang dipakai Service.
+// (DIP: Service bergantung pada abstraksi, bukan *Repository konkrit.)
+type repository interface {
+	CountActiveAdminsExcept(ctx context.Context, excludeID string) (int64, error)
+	CountStaf(ctx context.Context, f StafFilter) (int64, error)
+	CreateStaf(ctx context.Context, username, nama string, emailArg any, role, hash string) (*penggunaDTO, error)
+	EmailExists(ctx context.Context, email string) (bool, error)
+	EmailExistsExcept(ctx context.Context, email, excludeID string) (bool, error)
+	GetStaf(ctx context.Context, id string) (*penggunaDTO, error)
+	ListStaf(ctx context.Context, f StafFilter, limit, offset int) ([]penggunaDTO, error)
+	SetAktif(ctx context.Context, id string, isActive bool) (*penggunaDTO, error)
+	UpdatePassword(ctx context.Context, id, hash string) error
+	UpdateStaf(ctx context.Context, id, nama string, emailArg any, role string) (*penggunaDTO, error)
+	UsernameExists(ctx context.Context, username string) (bool, error)
+}
+
 type Service struct {
-	repo *Repository
+	repo repository
 	pool *pgxpool.Pool
 }
 
 // NewService membuat Service.
-func NewService(repo *Repository, pool *pgxpool.Pool) *Service {
+func NewService(repo repository, pool *pgxpool.Pool) *Service {
 	return &Service{repo: repo, pool: pool}
 }
 
-// catat menulis audit log. (Dulu: catat(c, pool, ...) di handler.)
-func (s *Service) catat(ctx context.Context, actor RequestActor, aksi, entitas, entitasID string, detail any) {
-	_ = audit.Catat(ctx, s.pool, actor.UserID, aksi, entitas, entitasID, detail, actor.RealIP)
-}
 
 // List mengembalikan halaman akun staf sesuai filter.
 func (s *Service) List(ctx context.Context, f StafFilter, perPage, offset int) ([]penggunaDTO, int64, *platform.AppError) {
@@ -164,7 +169,7 @@ func (s *Service) List(ctx context.Context, f StafFilter, perPage, offset int) (
 }
 
 // Create membuat akun staf baru.
-func (s *Service) Create(ctx context.Context, actor RequestActor, in CreateInput) (*penggunaDTO, *platform.AppError) {
+func (s *Service) Create(ctx context.Context, actor platform.RequestActor, in CreateInput) (*penggunaDTO, *platform.AppError) {
 	if msg := ValidasiUsername(in.Username); msg != "" {
 		return nil, platform.NewAppError("validation_error", msg, 422)
 	}
@@ -227,7 +232,7 @@ func (s *Service) Create(ctx context.Context, actor RequestActor, in CreateInput
 		}
 		return nil, platform.ErrInternal("internal_error", "Gagal menambah pengguna.")
 	}
-	s.catat(ctx, actor, "pengguna.create", "users", d.ID,
+	platform.Catat(ctx, s.pool, actor, "pengguna.create", "users", d.ID,
 		map[string]any{"username": username, "nama": d.Nama, "email": d.Email, "role": d.Role})
 	return d, nil
 }
@@ -248,7 +253,7 @@ func (s *Service) Get(ctx context.Context, id string) (*penggunaDTO, *platform.A
 }
 
 // Update mengubah nama/email/role akun staf. Username TIDAK bisa diubah.
-func (s *Service) Update(ctx context.Context, actor RequestActor, id string, in UpdateInput) (*penggunaDTO, *platform.AppError) {
+func (s *Service) Update(ctx context.Context, actor platform.RequestActor, id string, in UpdateInput) (*penggunaDTO, *platform.AppError) {
 	if !validUUID(id) {
 		return nil, platform.ErrNotFound("not_found", "Pengguna tidak ditemukan.")
 	}
@@ -316,13 +321,13 @@ func (s *Service) Update(ctx context.Context, actor RequestActor, id string, in 
 		}
 		return nil, platform.ErrInternal("internal_error", "Gagal mengubah pengguna.")
 	}
-	s.catat(ctx, actor, "pengguna.update", "users", d.ID,
+	platform.Catat(ctx, s.pool, actor, "pengguna.update", "users", d.ID,
 		map[string]any{"nama": d.Nama, "email": d.Email, "role": d.Role})
 	return d, nil
 }
 
 // ResetPassword mereset password akun staf + menghapus semua sesinya.
-func (s *Service) ResetPassword(ctx context.Context, actor RequestActor, id, passwordBaru string) (map[string]any, *platform.AppError) {
+func (s *Service) ResetPassword(ctx context.Context, actor platform.RequestActor, id, passwordBaru string) (map[string]any, *platform.AppError) {
 	if !validUUID(id) {
 		return nil, platform.ErrNotFound("not_found", "Pengguna tidak ditemukan.")
 	}
@@ -350,7 +355,7 @@ func (s *Service) ResetPassword(ctx context.Context, actor RequestActor, id, pas
 	if err := session.DestroyAllForUser(ctx, s.pool, targetID); err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal menghapus sesi pengguna.")
 	}
-	s.catat(ctx, actor, "pengguna.reset-password", "users", id,
+	platform.Catat(ctx, s.pool, actor, "pengguna.reset-password", "users", id,
 		map[string]any{"username": cur.Username})
 	return map[string]any{"password_reset": true, "must_change_password": true, "id": id}, nil
 }
@@ -358,7 +363,7 @@ func (s *Service) ResetPassword(ctx context.Context, actor RequestActor, id, pas
 // ToggleAktif mengaktifkan/menonaktifkan akun staf.
 // DILARANG: menonaktifkan akun sendiri (403) dan menonaktifkan admin
 // terakhir yang masih aktif (409). TIDAK ADA hard delete.
-func (s *Service) ToggleAktif(ctx context.Context, actor RequestActor, id string, isActive *bool) (*penggunaDTO, *platform.AppError) {
+func (s *Service) ToggleAktif(ctx context.Context, actor platform.RequestActor, id string, isActive *bool) (*penggunaDTO, *platform.AppError) {
 	if !validUUID(id) {
 		return nil, platform.ErrNotFound("not_found", "Pengguna tidak ditemukan.")
 	}
@@ -391,7 +396,7 @@ func (s *Service) ToggleAktif(ctx context.Context, actor RequestActor, id string
 	if err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal mengubah status pengguna.")
 	}
-	s.catat(ctx, actor, "pengguna.toggle-aktif", "users", d.ID,
+	platform.Catat(ctx, s.pool, actor, "pengguna.toggle-aktif", "users", d.ID,
 		map[string]any{"username": d.Username, "is_active": d.IsActive})
 	return d, nil
 }

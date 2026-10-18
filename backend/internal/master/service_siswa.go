@@ -121,7 +121,7 @@ func (s *Service) GetSiswa(ctx context.Context, id string) (*siswaDTO, *platform
 
 // CreateSiswa menambah siswa baru. Tanpa user_id: buatkan akun login
 // otomatis (sama seperti import): username = NISN, password awal = NISN.
-func (s *Service) CreateSiswa(ctx context.Context, actor RequestActor, in siswaInput) (*siswaDTO, *platform.AppError) {
+func (s *Service) CreateSiswa(ctx context.Context, actor platform.RequestActor, in siswaInput) (*siswaDTO, *platform.AppError) {
 	if msg := in.validate(); msg != "" {
 		return nil, platform.NewAppError("validation_error", msg, http.StatusUnprocessableEntity)
 	}
@@ -162,12 +162,12 @@ func (s *Service) CreateSiswa(ctx context.Context, actor RequestActor, in siswaI
 	if err := tx.Commit(ctx); err != nil {
 		return nil, platform.ErrInternal("internal_error", "Gagal menambah siswa.")
 	}
-	s.catat(ctx, actor, "create_siswa", "siswa", d.ID, map[string]any{"nisn": d.NISN, "nama": d.Nama})
+	platform.Catat(ctx, s.pool, actor, "create_siswa", "siswa", d.ID, map[string]any{"nisn": d.NISN, "nama": d.Nama})
 	return d, nil
 }
 
 // UpdateSiswa mengubah siswa. user_id tidak dikirim = pertahankan yang lama.
-func (s *Service) UpdateSiswa(ctx context.Context, actor RequestActor, id string, in siswaInput) (*siswaDTO, *platform.AppError) {
+func (s *Service) UpdateSiswa(ctx context.Context, actor platform.RequestActor, id string, in siswaInput) (*siswaDTO, *platform.AppError) {
 	if !validUUID(id) {
 		return nil, platform.ErrNotFound("not_found", "Siswa tidak ditemukan.")
 	}
@@ -205,7 +205,7 @@ func (s *Service) UpdateSiswa(ctx context.Context, actor RequestActor, id string
 		}
 		return nil, platform.ErrInternal("internal_error", "Gagal mengubah siswa.")
 	}
-	s.catat(ctx, actor, "update_siswa", "siswa", d.ID, map[string]any{"nisn": d.NISN, "nama": d.Nama})
+	platform.Catat(ctx, s.pool, actor, "update_siswa", "siswa", d.ID, map[string]any{"nisn": d.NISN, "nama": d.Nama})
 	return d, nil
 }
 
@@ -213,7 +213,7 @@ func (s *Service) UpdateSiswa(ctx context.Context, actor RequestActor, id string
 // / remedial hanya dinonaktifkan (ANALISIS 16.2), tidak dihapus.
 // Akun login (users) SENGAJA tidak dihapus: riwayat & username tidak
 // dipakai ulang untuk orang lain.
-func (s *Service) DeleteSiswa(ctx context.Context, actor RequestActor, id string) (map[string]any, *platform.AppError) {
+func (s *Service) DeleteSiswa(ctx context.Context, actor platform.RequestActor, id string) (map[string]any, *platform.AppError) {
 	if !validUUID(id) {
 		return nil, platform.ErrNotFound("not_found", "Siswa tidak ditemukan.")
 	}
@@ -248,6 +248,6 @@ func (s *Service) DeleteSiswa(ctx context.Context, actor RequestActor, id string
 	if affected == 0 {
 		return nil, platform.ErrNotFound("not_found", "Siswa tidak ditemukan.")
 	}
-	s.catat(ctx, actor, "delete_siswa", "siswa", id, nil)
+	platform.Catat(ctx, s.pool, actor, "delete_siswa", "siswa", id, nil)
 	return map[string]any{"deleted": true, "id": id}, nil
 }

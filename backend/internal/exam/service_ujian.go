@@ -22,7 +22,7 @@ func cekMilik(a attempt, siswaID string) *platform.AppError {
 }
 
 // UjianAktif mengembalikan jadwal hari ini untuk kelas siswa.
-func (s *Service) UjianAktif(ctx context.Context, actor RequestActor, siswaID string) (any, *platform.AppError) {
+func (s *Service) UjianAktif(ctx context.Context, actor platform.RequestActor, siswaID string) (any, *platform.AppError) {
 	kelasID, ada := s.repo.KelasSiswa(ctx, siswaID)
 	if !ada {
 		return map[string]any{
@@ -39,7 +39,7 @@ func (s *Service) UjianAktif(ctx context.Context, actor RequestActor, siswaID st
 
 // MulaiUjian memulai attempt baru (atau mengembalikan attempt berjalan
 // yang sudah ada — idempotent). created=true -> respons 201.
-func (s *Service) MulaiUjian(ctx context.Context, actor RequestActor, siswaID, jadwalID, token string) (data map[string]any, created bool, appErr *platform.AppError) {
+func (s *Service) MulaiUjian(ctx context.Context, actor platform.RequestActor, siswaID, jadwalID, token string) (data map[string]any, created bool, appErr *platform.AppError) {
 	j, err := s.repo.GetJadwal(ctx, jadwalID)
 	if err != nil {
 		return nil, false, platform.ErrNotFound("not_found", "Jadwal tidak ditemukan.")
@@ -160,7 +160,7 @@ func (s *Service) MulaiUjian(ctx context.Context, actor RequestActor, siswaID, j
 	if err := tx.Commit(ctx); err != nil {
 		return nil, false, platform.ErrInternal("internal_error", "Gagal memulai ujian.")
 	}
-	s.catat(ctx, actor, "ujian.mulai", "attempt", attemptID,
+	platform.Catat(ctx, s.pool, actor, "ujian.mulai", "attempt", attemptID,
 		map[string]any{"jadwal_id": j.ID})
 	monitor.Broadcast(j.ID, map[string]any{"type": "ujian_mulai", "jadwal_id": j.ID, "attempt_id": attemptID})
 	return map[string]any{
@@ -238,7 +238,7 @@ func (s *Service) muatSoalAttempt(ctx context.Context, a attempt, j jadwal) ([]m
 }
 
 // GetAttemptDetail mengembalikan detail attempt + soal untuk siswa.
-func (s *Service) GetAttemptDetail(ctx context.Context, actor RequestActor, siswaID, attemptID string) (map[string]any, *platform.AppError) {
+func (s *Service) GetAttemptDetail(ctx context.Context, actor platform.RequestActor, siswaID, attemptID string) (map[string]any, *platform.AppError) {
 	a, err := s.repo.GetAttempt(ctx, attemptID)
 	if err != nil {
 		return nil, platform.ErrNotFound("not_found", "Attempt tidak ditemukan.")
@@ -274,7 +274,7 @@ func (s *Service) GetAttemptDetail(ctx context.Context, actor RequestActor, sisw
 }
 
 // SimpanJawaban menyimpan satu jawaban siswa (dengan penskoran otomatis).
-func (s *Service) SimpanJawaban(ctx context.Context, actor RequestActor, siswaID, attemptID, soalID string, jawaban json.RawMessage) (map[string]any, *platform.AppError) {
+func (s *Service) SimpanJawaban(ctx context.Context, actor platform.RequestActor, siswaID, attemptID, soalID string, jawaban json.RawMessage) (map[string]any, *platform.AppError) {
 	a, err := s.repo.GetAttempt(ctx, attemptID)
 	if err != nil {
 		return nil, platform.ErrNotFound("not_found", "Attempt tidak ditemukan.")
@@ -344,7 +344,7 @@ func (s *Service) SimpanJawaban(ctx context.Context, actor RequestActor, siswaID
 	// Audit (Fase 3): simpan jawaban adalah mutasi — sebelumnya tidak
 	// dicatat. Detail TIDAK memuat isi jawaban (hemat audit log; isi
 	// jawaban sudah tersimpan di tabel jawaban).
-	s.catat(ctx, actor, "ujian.jawaban", "jawaban", soalID,
+	platform.Catat(ctx, s.pool, actor, "ujian.jawaban", "jawaban", soalID,
 		map[string]any{"attempt_id": a.ID, "soal_id": soalID})
 	s.broadcastAttempt(ctx, a)
 	return map[string]any{
@@ -354,7 +354,7 @@ func (s *Service) SimpanJawaban(ctx context.Context, actor RequestActor, siswaID
 }
 
 // TandaiRagu menandai/membatalkan flag ragu-ragu satu soal.
-func (s *Service) TandaiRagu(ctx context.Context, actor RequestActor, siswaID, attemptID, soalID string, ragu bool) (map[string]any, *platform.AppError) {
+func (s *Service) TandaiRagu(ctx context.Context, actor platform.RequestActor, siswaID, attemptID, soalID string, ragu bool) (map[string]any, *platform.AppError) {
 	a, err := s.repo.GetAttempt(ctx, attemptID)
 	if err != nil {
 		return nil, platform.ErrNotFound("not_found", "Attempt tidak ditemukan.")
@@ -373,7 +373,7 @@ func (s *Service) TandaiRagu(ctx context.Context, actor RequestActor, siswaID, a
 		return nil, platform.ErrInternal("internal_error", "Gagal menandai ragu-ragu.")
 	}
 	// Audit (Fase 3): tandai ragu-ragu adalah mutasi — sebelumnya tidak dicatat.
-	s.catat(ctx, actor, "ujian.ragu", "jawaban", soalID,
+	platform.Catat(ctx, s.pool, actor, "ujian.ragu", "jawaban", soalID,
 		map[string]any{"attempt_id": a.ID, "soal_id": soalID, "ragu": ragu})
 	s.broadcastAttempt(ctx, a)
 	return map[string]any{"soal_id": soalID, "ragu": ragu}, nil
@@ -381,7 +381,7 @@ func (s *Service) TandaiRagu(ctx context.Context, actor RequestActor, siswaID, a
 
 // CatatPelanggaran mencatat pelanggaran anti-curang (1x peringatan,
 // 2x auto-block per attempt; deduplikasi 5 detik).
-func (s *Service) CatatPelanggaran(ctx context.Context, actor RequestActor, siswaID, attemptID, jenis, detail string) (map[string]any, *platform.AppError) {
+func (s *Service) CatatPelanggaran(ctx context.Context, actor platform.RequestActor, siswaID, attemptID, jenis, detail string) (map[string]any, *platform.AppError) {
 	a, err := s.repo.GetAttempt(ctx, attemptID)
 	if err != nil {
 		return nil, platform.ErrNotFound("not_found", "Attempt tidak ditemukan.")
@@ -408,7 +408,7 @@ func (s *Service) CatatPelanggaran(ctx context.Context, actor RequestActor, sisw
 		return nil, platform.ErrInternal("internal_error", "Gagal mencatat pelanggaran.")
 	}
 	jumlah++
-	s.catat(ctx, actor, "ujian.pelanggaran", "attempt", a.ID,
+	platform.Catat(ctx, s.pool, actor, "ujian.pelanggaran", "attempt", a.ID,
 		map[string]any{"jenis": jenis, "jumlah": jumlah})
 	batas := s.repo.MaxPelanggaran(ctx)
 	if jumlah >= batas {
@@ -430,7 +430,7 @@ func (s *Service) CatatPelanggaran(ctx context.Context, actor RequestActor, sisw
 }
 
 // SubmitUjian memfinalisasi attempt (idempotent bila sudah selesai).
-func (s *Service) SubmitUjian(ctx context.Context, actor RequestActor, siswaID, attemptID string) (map[string]any, *platform.AppError) {
+func (s *Service) SubmitUjian(ctx context.Context, actor platform.RequestActor, siswaID, attemptID string) (map[string]any, *platform.AppError) {
 	a, err := s.repo.GetAttempt(ctx, attemptID)
 	if err != nil {
 		return nil, platform.ErrNotFound("not_found", "Attempt tidak ditemukan.")
@@ -458,7 +458,7 @@ func (s *Service) SubmitUjian(ctx context.Context, actor RequestActor, siswaID, 
 	if err != nil {
 		return nil, platform.ErrNotFound("not_found", "Jadwal tidak ditemukan.")
 	}
-	s.catat(ctx, actor, "ujian.submit", "attempt", a.ID,
+	platform.Catat(ctx, s.pool, actor, "ujian.submit", "attempt", a.ID,
 		map[string]any{"jadwal_id": a.JadwalID, "nilai_akhir": nilai, "menunggu_koreksi": menunggu})
 	s.broadcastAttempt(ctx, a)
 	resp := map[string]any{
@@ -475,7 +475,7 @@ func (s *Service) SubmitUjian(ctx context.Context, actor RequestActor, siswaID, 
 }
 
 // StatusAttempt mengembalikan status ringan attempt untuk polling client.
-func (s *Service) StatusAttempt(ctx context.Context, actor RequestActor, siswaID, attemptID string) (map[string]any, *platform.AppError) {
+func (s *Service) StatusAttempt(ctx context.Context, actor platform.RequestActor, siswaID, attemptID string) (map[string]any, *platform.AppError) {
 	a, err := s.repo.GetAttempt(ctx, attemptID)
 	if err != nil {
 		return nil, platform.ErrNotFound("not_found", "Attempt tidak ditemukan.")
@@ -531,7 +531,7 @@ type hasilItem struct {
 // HasilAttempt mengembalikan rekap per-soal untuk halaman hasil siswa.
 // Hanya attempt milik sendiri & sudah selesai. Pembahasan + kunci tampil
 // hanya disertakan bila paket Tryout atau tampil_hasil efektif.
-func (s *Service) HasilAttempt(ctx context.Context, actor RequestActor, siswaID, attemptID string) (map[string]any, *platform.AppError) {
+func (s *Service) HasilAttempt(ctx context.Context, actor platform.RequestActor, siswaID, attemptID string) (map[string]any, *platform.AppError) {
 	a, err := s.repo.GetAttempt(ctx, attemptID)
 	if err != nil {
 		return nil, platform.ErrNotFound("not_found", "Attempt tidak ditemukan.")

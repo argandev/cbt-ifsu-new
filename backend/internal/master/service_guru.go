@@ -84,7 +84,7 @@ func (s *Service) GetGuru(ctx context.Context, id string) (*guruDTO, *platform.A
 }
 
 // CreateGuru menambah guru baru.
-func (s *Service) CreateGuru(ctx context.Context, actor RequestActor, in guruInput) (*guruDTO, *platform.AppError) {
+func (s *Service) CreateGuru(ctx context.Context, actor platform.RequestActor, in guruInput) (*guruDTO, *platform.AppError) {
 	if msg := in.validate(); msg != "" {
 		return nil, platform.NewAppError("validation_error", msg, http.StatusUnprocessableEntity)
 	}
@@ -99,12 +99,12 @@ func (s *Service) CreateGuru(ctx context.Context, actor RequestActor, in guruInp
 		}
 		return nil, platform.ErrInternal("internal_error", "Gagal menambah guru.")
 	}
-	s.catat(ctx, actor, "create_guru", "guru", d.ID, map[string]any{"nama": d.Nama})
+	platform.Catat(ctx, s.pool, actor, "create_guru", "guru", d.ID, map[string]any{"nama": d.Nama})
 	return d, nil
 }
 
 // UpdateGuru mengubah guru.
-func (s *Service) UpdateGuru(ctx context.Context, actor RequestActor, id string, in guruInput) (*guruDTO, *platform.AppError) {
+func (s *Service) UpdateGuru(ctx context.Context, actor platform.RequestActor, id string, in guruInput) (*guruDTO, *platform.AppError) {
 	if !validUUID(id) {
 		return nil, platform.ErrNotFound("not_found", "Guru tidak ditemukan.")
 	}
@@ -125,14 +125,14 @@ func (s *Service) UpdateGuru(ctx context.Context, actor RequestActor, id string,
 		}
 		return nil, platform.ErrInternal("internal_error", "Gagal mengubah guru.")
 	}
-	s.catat(ctx, actor, "update_guru", "guru", d.ID, map[string]any{"nama": d.Nama})
+	platform.Catat(ctx, s.pool, actor, "update_guru", "guru", d.ID, map[string]any{"nama": d.Nama})
 	return d, nil
 }
 
 // DeleteGuru menghapus guru. Guru yang jadi pemilik bank soal tidak boleh
 // dihapus (ANALISIS 16.2: staf yang pernah membuat bank soal hanya
 // dinonaktifkan).
-func (s *Service) DeleteGuru(ctx context.Context, actor RequestActor, id string) (map[string]any, *platform.AppError) {
+func (s *Service) DeleteGuru(ctx context.Context, actor platform.RequestActor, id string) (map[string]any, *platform.AppError) {
 	if !validUUID(id) {
 		return nil, platform.ErrNotFound("not_found", "Guru tidak ditemukan.")
 	}
@@ -153,6 +153,6 @@ func (s *Service) DeleteGuru(ctx context.Context, actor RequestActor, id string)
 	if affected == 0 {
 		return nil, platform.ErrNotFound("not_found", "Guru tidak ditemukan.")
 	}
-	s.catat(ctx, actor, "delete_guru", "guru", id, nil)
+	platform.Catat(ctx, s.pool, actor, "delete_guru", "guru", id, nil)
 	return map[string]any{"deleted": true, "id": id}, nil
 }

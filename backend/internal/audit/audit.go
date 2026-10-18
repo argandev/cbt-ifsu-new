@@ -19,9 +19,9 @@ package audit
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
 
+	"cbt-smk-v2/backend/internal/platform"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v5"
 )
@@ -38,27 +38,8 @@ const (
 // detail di-marshal menjadi JSONB. Gagal catat TIDAK boleh menggagalkan
 // operasi utama, jadi pemanggil mengabaikan error ini (atau log saja).
 func Catat(ctx context.Context, pool *pgxpool.Pool, actorID, aksi, entitas, entitasID string, detail any, ip string) error {
-	var detailJSON []byte
-	var err error
-	if detail == nil {
-		detailJSON = []byte("{}")
-	} else {
-		detailJSON, err = json.Marshal(detail)
-		if err != nil {
-			detailJSON = []byte("{}")
-		}
-	}
-	var actor any
-	if strings.TrimSpace(actorID) == "" {
-		actor = nil
-	} else {
-		actor = actorID
-	}
-	_, err = pool.Exec(ctx,
-		`INSERT INTO audit_log (actor_id, aksi, entitas, entitas_id, detail, ip)
-		 VALUES ($1, $2, $3, $4, $5, $6)`,
-		actor, aksi, entitas, entitasID, detailJSON, ip)
-	return err
+	// Signature dipertahankan (API publik paket); implementasi tunggal di platform.
+	return platform.Catat(ctx, pool, platform.RequestActor{UserID: actorID, RealIP: ip}, aksi, entitas, entitasID, detail)
 }
 
 // CurrentUser membaca identitas dari context (diisi middleware Tim 1).
