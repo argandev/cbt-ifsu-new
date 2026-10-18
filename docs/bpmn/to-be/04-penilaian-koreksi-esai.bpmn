@@ -1,0 +1,234 @@
+<?xml version='1.0' encoding='utf-8'?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="defs_to_be_04_penilaian" targetNamespace="http://cbt-smk-v2/bpmn/to-be" exporter="CBT SMK v2 Tim To-Be BPMN" exporterVersion="1.0">
+  <process id="to_be_04_penilaian" name="To-Be 04 Penilaian dan Koreksi Esai" isExecutable="false">
+    <documentation>To-Be 04 — Penilaian dan Koreksi Esai DENGAN aplikasi CBT SMK v2.
+
+Alur: Sistem menilai soal objektif secara otomatis begitu attempt selesai.
+Nilai esai disembunyikan sampai koreksi final (siswa tidak melihat nilai
+esai parsial). Guru mengoreksi tiap jawaban esai dengan rubrik dan memberi
+skor 0 s.d. bobot soal; bila semua esai terkoreksi, sistem menghitung nilai
+akhir = jumlah poin semua soal / jumlah bobot semua soal x 100
+(proporsional bobot, bukan 50:50 objektif:esai) lalu mengunci nilai final.
+Bila perlu remedial, nilai remedial dicatat terpisah (nilai asli tidak
+ditimpa) dan nilai yang dipakai adalah nilai tertinggi.
+
+Asumsi: (1) Esai yang belum dikoreksi berstatus belum dinilai, BUKAN 0.
+(2) Pengoreksi esai BUKAN pengubah nilai final (SoD). (3) Nilai final
+yang terkunci hanya berubah lewat revisi tercatat. (4) Soal kosong
+dihitung 0 dan dibedakan dari salah di analisis butir soal; tanda
+ragu-ragu tidak memengaruhi nilai.
+
+Fakta aplikasi yang dipakai: nilai akhir = Sigma poin / Sigma bobot x 100,
+nilai esai disembunyikan sampai final, remedial memakai nilai tertinggi
+(KONTRAK §8.6); koreksi esai manual digabung ke nilai akhir (endpoint
+koreksi, KONTRAK §8.4); SoD pengoreksi != pengubah nilai final
+(KONTRAK §5.3).</documentation>
+    <laneSet id="laneset_to_be_04_penilaian">
+      <lane id="lane_0" name="Guru">
+        <flowNodeRef>t_koreksi</flowNodeRef>
+        <flowNodeRef>t_skor</flowNodeRef>
+        <flowNodeRef>g_semua</flowNodeRef>
+        <flowNodeRef>g_remedial</flowNodeRef>
+        <flowNodeRef>end_rem</flowNodeRef>
+        <flowNodeRef>end</flowNodeRef>
+      </lane>
+      <lane id="lane_1" name="Sistem (CBT SMK v2)">
+        <flowNodeRef>start</flowNodeRef>
+        <flowNodeRef>t_nilai</flowNodeRef>
+        <flowNodeRef>t_sembunyi</flowNodeRef>
+        <flowNodeRef>g_esai</flowNodeRef>
+        <flowNodeRef>t_hitung</flowNodeRef>
+        <flowNodeRef>t_final</flowNodeRef>
+        <flowNodeRef>t_remedial</flowNodeRef>
+        <flowNodeRef>t_tertinggi</flowNodeRef>
+      </lane>
+    </laneSet>
+    <startEvent id="start" name="Mulai">
+      <outgoing>f01</outgoing>
+    </startEvent>
+    <serviceTask id="t_nilai" name="Nilai Soal Objektif Otomatis">
+      <incoming>f01</incoming>
+      <outgoing>f02</outgoing>
+    </serviceTask>
+    <serviceTask id="t_sembunyi" name="Sembunyikan Nilai Esai Sampai Final">
+      <incoming>f02</incoming>
+      <outgoing>f03</outgoing>
+    </serviceTask>
+    <exclusiveGateway id="g_esai" name="Ada Soal Esai?">
+      <incoming>f03</incoming>
+      <outgoing>f04</outgoing>
+      <outgoing>f05</outgoing>
+    </exclusiveGateway>
+    <userTask id="t_koreksi" name="Koreksi Esai dengan Rubrik">
+      <incoming>f04</incoming>
+      <incoming>f08</incoming>
+      <outgoing>f06</outgoing>
+    </userTask>
+    <userTask id="t_skor" name="Input Skor Esai 0 s.d. Bobot">
+      <incoming>f06</incoming>
+      <outgoing>f07</outgoing>
+    </userTask>
+    <exclusiveGateway id="g_semua" name="Semua Esai Terkoreksi?">
+      <incoming>f07</incoming>
+      <outgoing>f08</outgoing>
+      <outgoing>f09</outgoing>
+    </exclusiveGateway>
+    <serviceTask id="t_hitung" name="Hitung Nilai Akhir">
+      <incoming>f05</incoming>
+      <incoming>f09</incoming>
+      <outgoing>f10</outgoing>
+    </serviceTask>
+    <serviceTask id="t_final" name="Kunci Nilai Final">
+      <incoming>f10</incoming>
+      <outgoing>f11</outgoing>
+    </serviceTask>
+    <exclusiveGateway id="g_remedial" name="Perlu Remedial?">
+      <incoming>f11</incoming>
+      <outgoing>f12</outgoing>
+      <outgoing>f15</outgoing>
+    </exclusiveGateway>
+    <serviceTask id="t_remedial" name="Catat Nilai Remedial Terpisah">
+      <incoming>f12</incoming>
+      <outgoing>f13</outgoing>
+    </serviceTask>
+    <serviceTask id="t_tertinggi" name="Ambil Nilai Tertinggi">
+      <incoming>f13</incoming>
+      <outgoing>f14</outgoing>
+    </serviceTask>
+    <endEvent id="end_rem" name="Selesai: Nilai Remedial Dicatat">
+      <incoming>f14</incoming>
+    </endEvent>
+    <endEvent id="end" name="Selesai: Nilai Final Terbit">
+      <incoming>f15</incoming>
+    </endEvent>
+    <sequenceFlow id="f01" sourceRef="start" targetRef="t_nilai" />
+    <sequenceFlow id="f02" sourceRef="t_nilai" targetRef="t_sembunyi" />
+    <sequenceFlow id="f03" sourceRef="t_sembunyi" targetRef="g_esai" />
+    <sequenceFlow id="f04" sourceRef="g_esai" targetRef="t_koreksi" name="Ya" />
+    <sequenceFlow id="f05" sourceRef="g_esai" targetRef="t_hitung" name="Tidak" />
+    <sequenceFlow id="f06" sourceRef="t_koreksi" targetRef="t_skor" />
+    <sequenceFlow id="f07" sourceRef="t_skor" targetRef="g_semua" />
+    <sequenceFlow id="f08" sourceRef="g_semua" targetRef="t_koreksi" name="Belum" />
+    <sequenceFlow id="f09" sourceRef="g_semua" targetRef="t_hitung" name="Ya" />
+    <sequenceFlow id="f10" sourceRef="t_hitung" targetRef="t_final" />
+    <sequenceFlow id="f11" sourceRef="t_final" targetRef="g_remedial" />
+    <sequenceFlow id="f12" sourceRef="g_remedial" targetRef="t_remedial" name="Ya" />
+    <sequenceFlow id="f13" sourceRef="t_remedial" targetRef="t_tertinggi" />
+    <sequenceFlow id="f14" sourceRef="t_tertinggi" targetRef="end_rem" />
+    <sequenceFlow id="f15" sourceRef="g_remedial" targetRef="end" name="Tidak" />
+  </process>
+  <bpmndi:BPMNDiagram id="diagram_to_be_04_penilaian" name="To-Be 04 Penilaian dan Koreksi Esai">
+    <bpmndi:BPMNPlane id="plane_to_be_04_penilaian" bpmnElement="to_be_04_penilaian">
+      <bpmndi:BPMNShape id="di_lane_0" bpmnElement="lane_0" isHorizontal="true">
+        <dc:Bounds x="0" y="0" width="2365" height="230" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_lane_1" bpmnElement="lane_1" isHorizontal="true">
+        <dc:Bounds x="0" y="250" width="2365" height="230" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_start" bpmnElement="start">
+        <dc:Bounds x="30" y="347" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_nilai" bpmnElement="t_nilai">
+        <dc:Bounds x="205" y="334" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_sembunyi" bpmnElement="t_sembunyi">
+        <dc:Bounds x="380" y="334" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_g_esai" bpmnElement="g_esai">
+        <dc:Bounds x="555" y="340" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_koreksi" bpmnElement="t_koreksi">
+        <dc:Bounds x="730" y="9" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_skor" bpmnElement="t_skor">
+        <dc:Bounds x="905" y="9" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_g_semua" bpmnElement="g_semua">
+        <dc:Bounds x="1080" y="15" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_hitung" bpmnElement="t_hitung">
+        <dc:Bounds x="1255" y="334" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_final" bpmnElement="t_final">
+        <dc:Bounds x="1430" y="334" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_g_remedial" bpmnElement="g_remedial">
+        <dc:Bounds x="1605" y="90" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_remedial" bpmnElement="t_remedial">
+        <dc:Bounds x="1780" y="409" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_tertinggi" bpmnElement="t_tertinggi">
+        <dc:Bounds x="1955" y="409" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_end_rem" bpmnElement="end_rem">
+        <dc:Bounds x="2130" y="172" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_end" bpmnElement="end">
+        <dc:Bounds x="2130" y="97" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="di_f01" bpmnElement="f01">
+        <di:waypoint x="66" y="365" />
+        <di:waypoint x="205" y="365" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f02" bpmnElement="f02">
+        <di:waypoint x="355" y="365" />
+        <di:waypoint x="380" y="365" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f03" bpmnElement="f03">
+        <di:waypoint x="530" y="365" />
+        <di:waypoint x="555" y="365" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f04" bpmnElement="f04">
+        <di:waypoint x="605" y="365" />
+        <di:waypoint x="730" y="40" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f05" bpmnElement="f05">
+        <di:waypoint x="605" y="365" />
+        <di:waypoint x="1255" y="365" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f06" bpmnElement="f06">
+        <di:waypoint x="880" y="40" />
+        <di:waypoint x="905" y="40" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f07" bpmnElement="f07">
+        <di:waypoint x="1055" y="40" />
+        <di:waypoint x="1080" y="40" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f08" bpmnElement="f08">
+        <di:waypoint x="1105" y="65" />
+        <di:waypoint x="1105" y="520" />
+        <di:waypoint x="805" y="520" />
+        <di:waypoint x="805" y="71" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f09" bpmnElement="f09">
+        <di:waypoint x="1130" y="40" />
+        <di:waypoint x="1255" y="365" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f10" bpmnElement="f10">
+        <di:waypoint x="1405" y="365" />
+        <di:waypoint x="1430" y="365" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f11" bpmnElement="f11">
+        <di:waypoint x="1580" y="365" />
+        <di:waypoint x="1605" y="115" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f12" bpmnElement="f12">
+        <di:waypoint x="1655" y="115" />
+        <di:waypoint x="1780" y="440" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f13" bpmnElement="f13">
+        <di:waypoint x="1930" y="440" />
+        <di:waypoint x="1955" y="440" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f14" bpmnElement="f14">
+        <di:waypoint x="2105" y="440" />
+        <di:waypoint x="2130" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f15" bpmnElement="f15">
+        <di:waypoint x="1655" y="115" />
+        <di:waypoint x="2130" y="115" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

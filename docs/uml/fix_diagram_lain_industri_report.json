@@ -1,0 +1,84 @@
+{
+  "sha_before": "158d9dd1c70804489ced5ab58164872fb16e9a55c76af7baf9cc8f2bbe9cf35e",
+  "changes": 0,
+  "diagrams": {
+    "use_case": {
+      "usecase_named": 19,
+      "usecase_total": 19,
+      "actor_named": 6,
+      "actor_total": 6,
+      "actor_usecase_associations": 39,
+      "include": 3,
+      "extend": 2,
+      "extend_conditions": [
+        "attempt diblokir",
+        "import file dipilih"
+      ],
+      "extension_points": 0,
+      "include_cycles": [],
+      "changed": 0
+    },
+    "class": {
+      "classes": 34,
+      "attributes": 229,
+      "attributes_typed_and_public": 229,
+      "operations": 11,
+      "class_class_associations": 46,
+      "associations_named": 46,
+      "ends_with_multiplicity": 92,
+      "ends_total": 92,
+      "ends_navigable_both": 46,
+      "ends_aggregation_none": 92,
+      "changed": 0
+    },
+    "erd": {
+      "entities": 35,
+      "columns": 231,
+      "relationships": 54,
+      "k7_cardinality_mismatches": [],
+      "name_labels_match_model": 54,
+      "labels_match_avg_rule_within_2px": 53,
+      "labels_match_single_rule_within_2px": 13,
+      "changed": 0
+    },
+    "activity": {
+      "Diagram Activity Pelaksanaan Ujian Siswa": {
+        "flows": 25,
+        "decisions": 3,
+        "decisions_in1_out2": true,
+        "guards_double_bracket": 0,
+        "changed": 0
+      },
+      "Diagram Activity Koreksi Esai ke Rekap": {
+        "flows": 11,
+        "decisions": 1,
+        "decisions_in1_out2": true,
+        "guards_double_bracket": 0,
+        "changed": 0
+      }
+    }
+  },
+  "activity_label_gap_2a": {
+    "pindah_tab_vs_siswa_submit_gap_px": 5.0,
+    "slot_label_to_edge_px": 28.5,
+    "slot_needed_for_8px_both_sides": 29,
+    "feasible": false,
+    "action": "TIDAK DIGESER — slot tidak muat 8px kedua sisi"
+  },
+  "diagram_documentation_chars": {
+    "Diagram Use Case CBT SMK v2": 608,
+    "Diagram Class Domain CBT SMK v2": 499,
+    "Diagram Activity Pelaksanaan Ujian Siswa": 511,
+    "Diagram Activity Koreksi Esai ke Rekap": 323,
+    "Diagram Sequence Login + Wajib Ganti Password": 547,
+    "Diagram Sequence Simpan Jawaban + Auto-Submit": 602,
+    "Diagram ERD Skema Database CBT SMK v2 (PostgreSQL, migrasi 0001-0012)": 578
+  },
+  "uc_include_label_vs_uc04_ellipse": {
+    "normalized_radius_squared": 1.56,
+    "outside_ellipse": true,
+    "action": "TIDAK DIGESER — hanya tumpang tindih kotak pembatas"
+  },
+  "sha_after": "158d9dd1c70804489ced5ab58164872fb16e9a55c76af7baf9cc8f2bbe9cf35e",
+  "mdj_unchanged": true
+}

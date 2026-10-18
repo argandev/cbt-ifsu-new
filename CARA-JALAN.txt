@@ -1,0 +1,62 @@
+CBT SMK v2 — CARA JALAN (singkat)
+=================================
+Detail deploy server sekolah: docs/PANDUAN-DEPLOY-SEKOLAH.md
+Detail keamanan: docs/KEAMANAN.md
+Kontrak teknis (permission, endpoint, route): docs/KONTRAK.md
+
+PRASYARAT
+---------
+- Go 1.25+ (go.mod: go 1.26), Node.js LTS + npm, PostgreSQL 16
+- Buat database:  createdb cbt_smk_v2
+- Perintah `make ...` dijalankan dari ROOT repo.
+  Perintah `go run ./cmd/server ...` dijalankan dari `backend/`
+  (modul Go adalah `cbt-smk-v2/backend` — tidak ada go.mod di root).
+
+1) KONFIGURASI
+--------------
+cp .env.example .env
+# Isi di .env (WAJIB, tanpa default untuk secret):
+#   DATABASE_URL=postgres://<user>:<password>@localhost:5432/cbt_smk_v2
+#   SESSION_SECRET=<acak panjang, min 32 karakter — contoh: openssl rand -hex 32>
+# .env JANGAN di-commit ke git.
+
+2) MIGRASI + SEED PRODUKSI
+--------------------------
+make migrate-up
+make seed
+# Seed mengisi: 6 role, 62 permission, matriks role-permission,
+# 6 settings default. TANPA akun demo / TANPA user apa pun.
+# `make seed` memakai psql; DATABASE_URL dibaca dari .env.
+
+3) AKUN PERTAMA (via CLI)
+-------------------------
+cd backend && go run ./cmd/server create-admin --email <email> --password <password> --nama "Nama Admin"
+# create-admin HANYA bila tabel users kosong. Setelah itu login dan
+# WAJIB ganti password saat login pertama (login ditolak 403
+# PASSWORD_CHANGE_REQUIRED sampai password diganti).
+
+4a) DEVELOPMENT
+---------------
+cd backend && go run ./cmd/server &   # backend di :9988 (tanpa argumen = serve)
+npm --prefix frontend run dev          # frontend Vite (dev server, dari root repo)
+
+4b) PRODUKSI (satu binary, frontend ter-embed)
+----------------------------------------------
+make build          # build frontend -> salin ke backend/dist -> binary ./cbt-smk-v2
+./cbt-smk-v2        # buka dari perangkat lain di jaringan sekolah: http://<IP-server>:9988
+
+ATAU pakai skrip deploy/ (lihat PANDUAN-DEPLOY-SEKOLAH.md):
+  ./deploy/start.sh    # build + jalankan
+  ./deploy/backup.sh   # backup PostgreSQL + timestamp
+
+CATATAN
+-------
+- cPanel shared hosting TIDAK dipakai. Deploy utama: server lokal sekolah (LAN).
+- Port default aplikasi: 9988. PostgreSQL: 5432 (hanya localhost).
+- Lupa password admin -> reset via CLI (dari backend/):
+    go run ./cmd/server reset-password --email <email> --password <password-baru>
+  Jangan edit hash password manual di database.
+- Import siswa: anjuran maks. 100 siswa per file (~17 detik).
+- Uji beban terukur (300 siswa, VM bersama, loopback): throughput fase
+  ujian 95,62 req/detik, 300/300 submit, 0 respons 5xx — lihat
+  docs/UJI-BEBAN-300.md. Uji ulang di server sekolah sebelum hari-H.

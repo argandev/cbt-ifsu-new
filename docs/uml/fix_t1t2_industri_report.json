@@ -1,0 +1,73 @@
+{
+  "applied": [
+    {
+      "fix": "T1",
+      "detail": "audit_log.actor_id -> users end1.cardinality ditambahkan '0..1' (render ujung induk '||' -> 'o|')"
+    },
+    {
+      "fix": "T1",
+      "detail": "guru.user_id -> users end1.cardinality ditambahkan '0..1' (render ujung induk '||' -> 'o|')"
+    },
+    {
+      "fix": "T1",
+      "detail": "siswa.user_id -> users end1.cardinality ditambahkan '0..1' (render ujung induk '||' -> 'o|')"
+    },
+    {
+      "fix": "T1",
+      "detail": "bank_soal.guru_id -> users end1.cardinality ditambahkan '0..1' (render ujung induk '||' -> 'o|')"
+    },
+    {
+      "fix": "T1",
+      "detail": "usulan_unblock.diproses_oleh -> users end1.cardinality ditambahkan '0..1' (render ujung induk '||' -> 'o|')"
+    },
+    {
+      "fix": "T1",
+      "detail": "berita_acara.dibuat_oleh -> users end1.cardinality ditambahkan '0..1' (render ujung induk '||' -> 'o|')"
+    },
+    {
+      "fix": "T1",
+      "detail": "ukk_nilai.dinilai_oleh -> users end1.cardinality ditambahkan '0..1' (render ujung induk '||' -> 'o|')"
+    },
+    {
+      "fix": "T1",
+      "detail": "ukk_berkas.diupload_oleh -> users end1.cardinality ditambahkan '0..1' (render ujung induk '||' -> 'o|')"
+    },
+    {
+      "fix": "T1",
+      "detail": "backup_meta.dibuat_oleh -> users end1.cardinality ditambahkan '0..1' (render ujung induk '||' -> 'o|')"
+    },
+    {
+      "fix": "T1",
+      "detail": "sod_overrides.actor_id -> users end1.cardinality ditambahkan '0..1' (render ujung induk '||' -> 'o|')"
+    },
+    {
+      "fix": "T1",
+      "detail": "mapel.jurusan_id -> jurusan end1.cardinality ditambahkan '0..1' (render ujung induk '||' -> 'o|')"
+    },
+    {
+      "fix": "T1",
+      "detail": "kisi_kisi.kompetensi_id -> kompetensi end1.cardinality ditambahkan '0..1' (render ujung induk '||' -> 'o|')"
+    },
+    {
+      "fix": "T1",
+      "detail": "soal.kompetensi_id -> kompetensi end1.cardinality ditambahkan '0..1' (render ujung induk '||' -> 'o|')"
+    },
+    {
+      "fix": "T1",
+      "detail": "soal.kisi_kisi_id -> kisi_kisi end1.cardinality ditambahkan '0..1' (render ujung induk '||' -> 'o|')"
+    },
+    {
+      "fix": "T1",
+      "detail": "jadwal_ujian.event_id -> event end1.cardinality ditambahkan '0..1' (render ujung induk '||' -> 'o|')"
+    },
+    {
+      "fix": "T1",
+      "detail": "jadwal_ujian.ruangan_id -> ruangan end1.cardinality ditambahkan '0..1' (render ujung induk '||' -> 'o|')"
+    },
+    {
+      "fix": "T2",
+      "detail": "berita_acara.dibuat_oleh titik masuk x=1267 -> x=1317 (+50px; jarak ke jadwal_id x=1277 menjadi 40px)"
+    }
+  ],
+  "skipped": []
+}

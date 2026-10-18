@@ -1,0 +1,81 @@
+{
+  "applied": [],
+  "skipped": [
+    {
+      "fix": "F1",
+      "detail": "VW3VFH11QHGKA491UCKFQI condition sudah 'attempt diblokir'"
+    },
+    {
+      "fix": "F1",
+      "detail": "K5XYTJYZDP926I4YUGGNAK condition sudah 'import file dipilih'"
+    },
+    {
+      "fix": "F2",
+      "detail": "V38NRXOLBDF34FV3YOU4ZQ.end1 sudah '0..1' (audit_log.actor_id nullable (ERD))"
+    },
+    {
+      "fix": "F2",
+      "detail": "NQLIHZVFEDRY9B1IJBHHJL.end1 sudah '0..1' (siswa.user_id nullable (ERD))"
+    },
+    {
+      "fix": "F2",
+      "detail": "NQQBNNU2SNFD696MPYIPH5.end1 sudah '0..1' (guru.user_id nullable (ERD))"
+    },
+    {
+      "fix": "F2",
+      "detail": "YK8X6L8EC212V0DND3I8FA.end1 sudah '0..1' (backup_meta.dibuat_oleh nullable (ERD))"
+    },
+    {
+      "fix": "F2",
+      "detail": "8ZUP8W22ZQQGI64RYT5271.end1 sudah '0..1' (sod_overrides.actor_id nullable (ERD))"
+    },
+    {
+      "fix": "F2",
+      "detail": "AZPRRXDXP7TSMCEA9I9JHE.end1 sudah '0..1' (jadwal_ujian.event_id nullable (ERD))"
+    },
+    {
+      "fix": "F2",
+      "detail": "XNVFDMF6P90CXBI8ME0FAN.end1 sudah '0..1' (jadwal_ujian.ruangan_id nullable (ERD))"
+    },
+    {
+      "fix": "F2",
+      "detail": "8FMTB6GWZVDQU6O3XXG4RO.end1 sudah '0..1' (kisi_kisi.kompetensi_id nullable (ERD))"
+    },
+    {
+      "fix": "F2",
+      "detail": "MULR96HMAH2EIA42V718K5.end1 sudah '0..1' (soal.kompetensi_id nullable (ERD))"
+    },
+    {
+      "fix": "F2",
+      "detail": "MQBUJY786WH0L35FJUMPUZ.end1 sudah '0..1' (soal.kisi_kisi_id nullable (ERD))"
+    },
+    {
+      "fix": "F2",
+      "detail": "HYVXXDRZ49AY3W8SBVAZQY.end2 sudah '0..1' (berita_acara.jadwal_id UNIQUE: jadwal boleh belum punya BA)"
+    },
+    {
+      "fix": "F2",
+      "detail": "2MO1SRJUDX1DBGC8DO4GNM.end2 sudah '0..1' (nilai_akhir.attempt_id UNIQUE: attempt berjalan belum punya nilai)"
+    },
+    {
+      "fix": "F2",
+      "detail": "AGWYTF96CCAANM2P4IPC87.end1 sudah '*' (role_permissions PK (role_id, permission_id): satu permission boleh di banyak role)"
+    },
+    {
+      "fix": "F3",
+      "detail": "XB27TL4C5B4ZH6L1XS4LQL guard sudah '[pindah tab / blur]'"
+    },
+    {
+      "fix": "F3",
+      "detail": "IZ0U1SYVXE4Q50TLZIWLLP guard sudah '[cek waktu / submit]'"
+    },
+    {
+      "fix": "F4",
+      "detail": "broadcastAttempt sudah asynchCall"
+    },
+    {
+      "fix": "F5",
+      "detail": "pesan reply '200 password berhasil diubah' sudah ada"
+    }
+  ]
+}

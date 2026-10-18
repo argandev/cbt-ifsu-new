@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_Proses_RekapBeritaAcara_AsIs" targetNamespace="http://cbt-smk-v2/bpmn/as-is" exporter="CBT SMK v2 - Tim BPMN As-Is" exporterVersion="1.0 (2026-10-17)">
+  <bpmn:collaboration id="Collaboration_Proses_RekapBeritaAcara_AsIs" name="Proses Rekap Nilai dan Berita Acara — Manual">
+    <bpmn:participant id="Participant_Proses_RekapBeritaAcara_AsIs" name="Proses Rekap Nilai dan Berita Acara — Manual" processRef="Proses_RekapBeritaAcara_AsIs"/>
+  </bpmn:collaboration>
+  <bpmn:process id="Proses_RekapBeritaAcara_AsIs" name="Rekap Nilai dan Berita Acara (As-Is, Manual)" isExecutable="false">
+    <bpmn:documentation>Alur as-is: panitia merekap nilai di Microsoft Excel secara manual dari daftar nilai guru, menulis berita acara ujian (tangan/diketik), dan meminta tanda tangan basah pengawas serta kepala sekolah. Asumsi: rekap per kelas dan mata pelajaran; berita acara memuat jumlah peserta, hadir, tidak hadir, dan kejadian selama ujian; dokumen disimpan sebagai arsip kertas; tidak ada rekap otomatis, ekspor CSV, atau tanda tangan elektronik.</bpmn:documentation>
+    <bpmn:laneSet id="LaneSet_Proses_RekapBeritaAcara_AsIs" name="Aktor">
+      <bpmn:lane id="Lane_Proses_RekapBeritaAcara_AsIs_0" name="Panitia Ujian">
+        <bpmn:flowNodeRef>Start1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>T01</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>T02</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>G01</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>T03</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>T04</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>T05</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>G02</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>T06</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>T07</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>T09</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End1</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Proses_RekapBeritaAcara_AsIs_1" name="Pengawas Ujian"/>
+      <bpmn:lane id="Lane_Proses_RekapBeritaAcara_AsIs_2" name="Kepala Sekolah">
+        <bpmn:flowNodeRef>T08</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="Start1" name="Mulai">
+      <bpmn:outgoing>F01</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="T01" name="Kumpulkan Daftar Nilai dari Guru">
+      <bpmn:incoming>F01</bpmn:incoming>
+      <bpmn:outgoing>F02</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="T02" name="Input Nilai ke Excel">
+      <bpmn:incoming>F02</bpmn:incoming>
+      <bpmn:incoming>F05</bpmn:incoming>
+      <bpmn:outgoing>F03</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="G01" name="Nilai semua kelas lengkap?">
+      <bpmn:incoming>F03</bpmn:incoming>
+      <bpmn:outgoing>F04</bpmn:outgoing>
+      <bpmn:outgoing>F06</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="T03" name="Minta Kekurangan Nilai ke Guru">
+      <bpmn:incoming>F04</bpmn:incoming>
+      <bpmn:outgoing>F05</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="T04" name="Hitung Rekap Nilai">
+      <bpmn:incoming>F06</bpmn:incoming>
+      <bpmn:outgoing>F07</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="T05" name="Tulis Berita Acara Ujian">
+      <bpmn:incoming>F07</bpmn:incoming>
+      <bpmn:outgoing>F08</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="G02" name="Ada kejadian atau kendala selama ujian?">
+      <bpmn:incoming>F08</bpmn:incoming>
+      <bpmn:outgoing>F09</bpmn:outgoing>
+      <bpmn:outgoing>F11</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="T06" name="Catat Kejadian di Berita Acara">
+      <bpmn:incoming>F09</bpmn:incoming>
+      <bpmn:outgoing>F10</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="T07" name="Minta Tanda Tangan Pengawas">
+      <bpmn:incoming>F10</bpmn:incoming>
+      <bpmn:incoming>F11</bpmn:incoming>
+      <bpmn:outgoing>F12</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="T08" name="Minta Tanda Tangan Kepala Sekolah">
+      <bpmn:incoming>F12</bpmn:incoming>
+      <bpmn:outgoing>F13</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="T09" name="Arsipkan Berita Acara dan Rekap">
+      <bpmn:incoming>F13</bpmn:incoming>
+      <bpmn:outgoing>F14</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="End1" name="Selesai">
+      <bpmn:incoming>F14</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="F01" sourceRef="Start1" targetRef="T01"/>
+    <bpmn:sequenceFlow id="F02" sourceRef="T01" targetRef="T02"/>
+    <bpmn:sequenceFlow id="F03" sourceRef="T02" targetRef="G01"/>
+    <bpmn:sequenceFlow id="F04" sourceRef="G01" targetRef="T03" name="Tidak"/>
+    <bpmn:sequenceFlow id="F05" sourceRef="T03" targetRef="T02" name="Nilai dilengkapi lalu diinput ulang"/>
+    <bpmn:sequenceFlow id="F06" sourceRef="G01" targetRef="T04" name="Ya"/>
+    <bpmn:sequenceFlow id="F07" sourceRef="T04" targetRef="T05"/>
+    <bpmn:sequenceFlow id="F08" sourceRef="T05" targetRef="G02"/>
+    <bpmn:sequenceFlow id="F09" sourceRef="G02" targetRef="T06" name="Ya"/>
+    <bpmn:sequenceFlow id="F10" sourceRef="T06" targetRef="T07"/>
+    <bpmn:sequenceFlow id="F11" sourceRef="G02" targetRef="T07" name="Tidak"/>
+    <bpmn:sequenceFlow id="F12" sourceRef="T07" targetRef="T08"/>
+    <bpmn:sequenceFlow id="F13" sourceRef="T08" targetRef="T09"/>
+    <bpmn:sequenceFlow id="F14" sourceRef="T09" targetRef="End1"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_Proses_RekapBeritaAcara_AsIs" name="Rekap Nilai dan Berita Acara (As-Is, Manual)">
+    <bpmndi:BPMNPlane id="Plane_Proses_RekapBeritaAcara_AsIs" bpmnElement="Collaboration_Proses_RekapBeritaAcara_AsIs">
+      <bpmndi:BPMNShape id="Shape_Participant_Proses_RekapBeritaAcara_AsIs" bpmnElement="Participant_Proses_RekapBeritaAcara_AsIs" isHorizontal="true">
+        <dc:Bounds x="20" y="20" width="2360" height="610"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_Proses_RekapBeritaAcara_AsIs_0" bpmnElement="Lane_Proses_RekapBeritaAcara_AsIs_0" isHorizontal="true">
+        <dc:Bounds x="50" y="20" width="2330" height="190"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_Proses_RekapBeritaAcara_AsIs_1" bpmnElement="Lane_Proses_RekapBeritaAcara_AsIs_1" isHorizontal="true">
+        <dc:Bounds x="50" y="210" width="2330" height="190"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_Proses_RekapBeritaAcara_AsIs_2" bpmnElement="Lane_Proses_RekapBeritaAcara_AsIs_2" isHorizontal="true">
+        <dc:Bounds x="50" y="400" width="2330" height="190"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Start1" bpmnElement="Start1">
+        <dc:Bounds x="177" y="62" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_T01" bpmnElement="T01">
+        <dc:Bounds x="310" y="45" width="150" height="70"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_T02" bpmnElement="T02">
+        <dc:Bounds x="500" y="45" width="150" height="70"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_G01" bpmnElement="G01">
+        <dc:Bounds x="740" y="55" width="50" height="50"/>
+        <bpmndi:BPMNLabel/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_T03" bpmnElement="T03">
+        <dc:Bounds x="880" y="125" width="150" height="70"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_T04" bpmnElement="T04">
+        <dc:Bounds x="880" y="45" width="150" height="70"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_T05" bpmnElement="T05">
+        <dc:Bounds x="1070" y="45" width="150" height="70"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_G02" bpmnElement="G02">
+        <dc:Bounds x="1310" y="55" width="50" height="50"/>
+        <bpmndi:BPMNLabel/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_T06" bpmnElement="T06">
+        <dc:Bounds x="1450" y="125" width="150" height="70"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_T07" bpmnElement="T07">
+        <dc:Bounds x="1450" y="45" width="150" height="70"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_T08" bpmnElement="T08">
+        <dc:Bounds x="1640" y="425" width="150" height="70"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_T09" bpmnElement="T09">
+        <dc:Bounds x="1830" y="45" width="150" height="70"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End1" bpmnElement="End1">
+        <dc:Bounds x="2077" y="62" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Edge_F01" bpmnElement="F01">
+        <di:waypoint x="213" y="80"/>
+        <di:waypoint x="310" y="80"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_F02" bpmnElement="F02">
+        <di:waypoint x="460" y="80"/>
+        <di:waypoint x="500" y="80"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_F03" bpmnElement="F03">
+        <di:waypoint x="650" y="80"/>
+        <di:waypoint x="740" y="80"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_F04" bpmnElement="F04">
+        <di:waypoint x="790" y="80"/>
+        <di:waypoint x="880" y="160"/>
+        <bpmndi:BPMNLabel/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_F05" bpmnElement="F05">
+        <di:waypoint x="955" y="195"/>
+        <di:waypoint x="955" y="225"/>
+        <di:waypoint x="575" y="225"/>
+        <di:waypoint x="575" y="115"/>
+        <bpmndi:BPMNLabel/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_F06" bpmnElement="F06">
+        <di:waypoint x="790" y="80"/>
+        <di:waypoint x="880" y="80"/>
+        <bpmndi:BPMNLabel/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_F07" bpmnElement="F07">
+        <di:waypoint x="1030" y="80"/>
+        <di:waypoint x="1070" y="80"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_F08" bpmnElement="F08">
+        <di:waypoint x="1220" y="80"/>
+        <di:waypoint x="1310" y="80"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_F09" bpmnElement="F09">
+        <di:waypoint x="1360" y="80"/>
+        <di:waypoint x="1450" y="160"/>
+        <bpmndi:BPMNLabel/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_F10" bpmnElement="F10">
+        <di:waypoint x="1600" y="160"/>
+        <di:waypoint x="1450" y="80"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_F11" bpmnElement="F11">
+        <di:waypoint x="1360" y="80"/>
+        <di:waypoint x="1450" y="80"/>
+        <bpmndi:BPMNLabel/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_F12" bpmnElement="F12">
+        <di:waypoint x="1600" y="80"/>
+        <di:waypoint x="1640" y="460"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_F13" bpmnElement="F13">
+        <di:waypoint x="1790" y="460"/>
+        <di:waypoint x="1830" y="80"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_F14" bpmnElement="F14">
+        <di:waypoint x="1980" y="80"/>
+        <di:waypoint x="2077" y="80"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,29 @@
+{
+  "diagrams": [
+    {
+      "name": "Diagram Sequence Login + Wajib Ganti Password",
+      "pitch_before": 180,
+      "pitch_after": 165,
+      "box_gap_before": 40,
+      "box_gap_after": 25,
+      "total_width_before": 680,
+      "total_width_after": 635,
+      "lifeline_width": 140,
+      "min_label_head_clearance": 8.5,
+      "min_label_label_gap": 27.0
+    },
+    {
+      "name": "Diagram Sequence Simpan Jawaban + Auto-Submit",
+      "pitch_before": 180,
+      "pitch_after": 165,
+      "box_gap_before": 40,
+      "box_gap_after": 25,
+      "total_width_before": 1040,
+      "total_width_after": 965,
+      "lifeline_width": 140,
+      "min_label_head_clearance": 24.5,
+      "min_label_label_gap": 47.0
+    }
+  ],
+  "labels_resynced": 96
+}

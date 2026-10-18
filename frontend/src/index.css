@@ -1,0 +1,281 @@
+@import "@fontsource/plus-jakarta-sans/400.css";
+@import "@fontsource/plus-jakarta-sans/500.css";
+@import "@fontsource/plus-jakarta-sans/600.css";
+@import "@fontsource/plus-jakarta-sans/700.css";
+@import "@fontsource/plus-jakarta-sans/800.css";
+@import "tailwindcss";
+
+/*
+ * DESIGN SYSTEM — CBT SMK v2.
+ * Gaya layout: header biru tua + status berwarna, terinspirasi tampilan
+ * aplikasi ujian berbasis komputer pemerintah (LAYOUT SAJA).
+ * Aplikasi ini BUKAN aplikasi ujian nasional resmi dan TIDAK memakai
+ * logo / nama instansi resmi apa pun. Nama aplikasi tetap "CBT SMK",
+ * header memakai nama sekolah dari settings / "CBT SMK".
+ *
+ * SATU sistem desain: komponen UI dari Ant Design + token di
+ * ConfigProvider (App.tsx). Class `.ds-*` dan komponen custom lama
+ * (ui/Button, ui/Card, ui/Input, ui/Select, ui/Table, ui/Dialog,
+ * ui/Badge, ui/Dropdown, PageHeader, StatusBadge, EmptyState,
+ * ConfirmDialog, Pagination, SearchInput, StatCard, PrintLayout,
+ * layout/Sidebar, layout/Topbar, Breadcrumbs) SUDAH DIHAPUS —
+ * jangan mengembalikannya.
+ *
+ * Token Tailwind di @theme di bawah HANYA jembatan untuk class
+ * utility yang masih dipakai di className (mis. bg-anbk, text-muted).
+ * Nilainya SAMA PERSIS dengan token antd di ConfigProvider.
+ * Token yang 0 pemakai sudah dihapus (AUDIT-KONSISTENSI.md §2.1).
+ * DILARANG menambah token/warna baru tanpa persetujuan koordinator.
+ *
+ * Tipografi (AUDIT-KONSISTENSI.md §2.3): judul halaman =
+ * Typography.Title level={3} (24/700); judul kartu 16/600; body 14;
+ * label form 14/600 (Form.Item label); caption 12. Radius 8 untuk
+ * semua; shadow antd default saja.
+ *
+ * Aturan: target sentuh min 44px dipertahankan di semua tombol/input
+ * interaktif. Jangan mengubah teks "Ragu-ragu", "Sebelumnya",
+ * "Berikutnya", "Selesai".
+ */
+
+@theme {
+  /* JEMBATAN (AUDIT-KONSISTENSI.md §2.1): token Tailwind di sini hanya
+     untuk class utility yang masih dipakai di className. Setiap nilainya
+     SAMA PERSIS dengan token antd di ConfigProvider (App.tsx) — itu
+     satu-satunya sumber kebenaran. Token 0 pemakai DIHAPUS (Tim Layout):
+     --color-primary-dark, --color-anbk-dark, --color-answered(-bg),
+     --color-info(-bg), --color-doubt(-bg), --color-inactive-bg.
+     --color-inactive DIPERTAHANKAN (dipakai var() di DistribusiChart).
+     DILARANG menambah token/warna baru di sini tanpa persetujuan
+     koordinator. */
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+
+  /* Primer — biru tua (header, tombol primer, tautan aktif). */
+  --color-primary: #1e4e9e;
+  --color-primary-darker: #122f5e;
+  --color-primary-light: #e8effa;
+
+  /* Alias gaya ANBK — SATU biru primer untuk seluruh aplikasi.
+     --color-anbk == --color-primary. Jangan lagi pakai hex mentah di className. */
+  --color-anbk: #1e4e9e;
+  --color-primary-soft: #dbe6f7;
+
+  /* Status — hijau = sudah dijawab / aktif / lulus. */
+  --color-success: #15803d;
+  --color-success-bg: #dcfce7;
+
+  /* Status — kuning = RAGU-RAGU / jeda / menunggu. */
+  --color-warning: #b45309;
+  --color-warning-bg: #fef3c7;
+
+  /* Status — merah = bahaya / diblokir / tidak lulus. */
+  --color-danger: #dc2626;
+  --color-danger-bg: #fee2e2;
+
+  /* Abu-abu status — DIPAKAI sebagai var(--color-inactive) di
+     components/analisis/DistribusiChart.tsx (fill batang chart),
+     bukan sebagai class Tailwind. */
+  --color-inactive: #64748b;
+
+  /* Netral. */
+  --color-surface: #eef2f7;
+  --color-ink: #0f172a;
+  --color-muted: #475569;
+  --color-border: #cbd5e1;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-darker);
+}
+
+/* Fokus keyboard selalu terlihat (aksesibilitas). */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Class `.ds-*` (ds-page-title, ds-section-title, ds-label, ds-help,
+   ds-header-band, ds-alert*, ds-table-wrap, ds-form, ds-actions)
+   DIHAPUS (Tim Layout) setelah grep membuktikan 0 pemakai di *.tsx —
+   digantikan antd Typography / Form / Form.Item / Alert / Card. */
+
+/* ---------- Rich editor + rich content (Tim E) ---------- */
+/* Konten hasil RichEditor / RichContent: TipTap tidak membawa gaya
+   list/tabel sendiri (Tailwind preflight me-reset-nya), jadi gaya
+   dasar didefinisikan di sini. Berlaku juga untuk teks polos lama
+   (hanya <br>) — tidak mengubah tampilannya. */
+.rich-content p,
+.rich-editor-content p {
+  margin: 0.25rem 0;
+}
+.rich-content ul,
+.rich-editor-content ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+  margin: 0.25rem 0;
+}
+.rich-content ol,
+.rich-editor-content ol {
+  list-style: decimal;
+  padding-left: 1.5rem;
+  margin: 0.25rem 0;
+}
+.rich-content li,
+.rich-editor-content li {
+  margin: 0.125rem 0;
+}
+.rich-content h2,
+.rich-editor-content h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0.75rem 0 0.25rem;
+}
+.rich-content h3,
+.rich-editor-content h3 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 0.5rem 0 0.25rem;
+}
+.rich-content blockquote,
+.rich-editor-content blockquote {
+  border-left: 3px solid var(--color-border);
+  padding-left: 0.75rem;
+  color: var(--color-muted);
+  margin: 0.5rem 0;
+}
+.rich-content pre,
+.rich-editor-content pre {
+  background: var(--color-ink);
+  color: var(--color-surface);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  margin: 0.5rem 0;
+}
+.rich-content code,
+.rich-editor-content code {
+  background: var(--color-surface);
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.375rem;
+  font-size: 0.875em;
+}
+.rich-content pre code,
+.rich-editor-content pre code {
+  background: transparent;
+  padding: 0;
+}
+.rich-content table,
+.rich-editor-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.5rem 0;
+}
+.rich-content th,
+.rich-content td,
+.rich-editor-content th,
+.rich-editor-content td {
+  border: 1px solid var(--color-border);
+  padding: 0.5rem;
+  text-align: left;
+  vertical-align: top;
+}
+.rich-content th,
+.rich-editor-content th {
+  background: var(--color-surface);
+  font-weight: 700;
+}
+.rich-content img,
+.rich-editor-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+}
+.rich-content .katex,
+.rich-editor-content .katex {
+  font-size: 1.05em;
+}
+/* Video embed (YouTube/Vimeo) — rasio 16:9, lebar penuh. */
+.rich-video-frame {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: 0.5rem;
+  background: var(--color-ink);
+}
+.rich-content .rich-video-frame {
+  display: block;
+  margin: 0.5rem 0;
+}
+/* Penanda video di dalam editor (belum jadi iframe). */
+.rich-editor-content div[data-video-embed] {
+  border: 2px dashed var(--color-border);
+  border-radius: 0.5rem;
+  background: var(--color-surface);
+  padding: 1rem;
+  text-align: center;
+  font-weight: 600;
+  color: var(--color-muted);
+  margin: 0.5rem 0;
+}
+
+/* Area edit TipTap. */
+.rich-editor-content {
+  min-height: 120px;
+  padding: 0.75rem;
+  outline: none;
+  font-size: 16px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+.rich-editor-content:focus {
+  outline: none;
+}
+/* Placeholder (ekstensi Placeholder TipTap). */
+.rich-editor-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--color-inactive);
+  pointer-events: none;
+  height: 0;
+}
+.rich-editor-content .ProseMirror-selectednode {
+  outline: 2px solid var(--color-primary);
+  border-radius: 0.25rem;
+}
+
+/* ---------- Ant Design (Tim Setup + Tema) — koeksistensi ---------- */
+/* antd v6 dipakai via ConfigProvider di App.tsx (theme + locale id_ID).
+   antd v6 memakai CSS-in-JS: gayanya dihasilkan saat runtime dari
+   bundle lokal — JANGAN import file CSS antd (mis. antd/dist/antd.css
+   / reset.css) dan JANGAN tambah <link> CDN apa pun. Sekolah jalan
+   LAN offline; semua aset harus dari bundle lokal.
+   Token antd (colorPrimary #1e4e9e, borderRadius 8, fontFamily
+   "Plus Jakarta Sans") disetel di ConfigProvider, BUKAN di sini —
+   satu sumber kebenaran. Token Tailwind di @theme atas (mis.
+   --color-anbk / --color-primary) DIPERTAHANKAN agar halaman yang
+   belum di-redesign tidak berubah.
+   AUDIT BENTROK (16 Okt 2026, Tim Setup + Tema) — hasil: TIDAK ADA
+   yang dihapus dari file ini, dengan bukti:
+   - File ini TIDAK mendefinisikan satu pun utility Tailwind (grep
+     `^\.(flex|grid|p-|m-|text-|bg-|border|rounded|w-|h-)` = 0 hasil);
+     utility Tailwind hanya ada di className file .tsx, bukan di sini.
+   - TIDAK ADA selector `.ant-*` di file ini (grep = 0) — tidak ada
+     aturan kustom yang menyentuh komponen antd.
+   - Satu-satunya selector global adalah `body`, `::selection`, dan
+     `:focus-visible` — ketiganya TIDAK menarget elemen antd dan tidak
+     mengubah tampilan komponen antd (body memberi latar + font dasar
+     yang juga dipakai komponen antd; :focus-visible memberi outline
+     keyboard yang konsisten dengan focus ring antd).
+   - Class `.ds-*` SUDAH DIHAPUS (Tim Layout, grep 0 pemakai di *.tsx).
+     Class `.rich-*` DIPERTAHANKAN (gaya konten editor TipTap /
+     RichContent — bukan komponen UI). Tailwind TETAP dipakai untuk
+     layout/spacing (flex, gap, px/py, max-w, grid) di semua halaman;
+     komponen UI (tombol, input, tabel, modal, ...) memakai antd. */

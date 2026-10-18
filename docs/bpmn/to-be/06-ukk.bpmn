@@ -1,0 +1,275 @@
+<?xml version='1.0' encoding='utf-8'?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="defs_to_be_06_ukk" targetNamespace="http://cbt-smk-v2/bpmn/to-be" exporter="CBT SMK v2 Tim To-Be BPMN" exporterVersion="1.0">
+  <process id="to_be_06_ukk" name="To-Be 06 UKK" isExecutable="false">
+    <documentation>To-Be 06 — UKK DENGAN aplikasi CBT SMK v2.
+
+Alur: Penguji UKK (internal + eksternal DUDIKA) menetapkan skema dan unit
+kompetensi. Siswa mengerjakan ujian teori UKK lewat CBT lalu mengerjakan
+praktik di lab/bengkel dan mengunggah berkas praktik (bukti). Sistem
+memvalidasi berkas (ekstensi diizinkan, maks 10 MB, nama aman); berkas
+tidak valid harus diperbaiki. Penguji menilai rubrik praktik per aspek:
+Proses 30%, Produk 50%, Sikap 20%. Sistem menghitung nilai praktik lalu
+nilai akhir UKK = teori 40% + praktik 60%. Nilai akhir &gt;= 70 = lulus;
+di bawah 70 = belum lulus dan hanya mengulang unit yang belum kompeten,
+bukan seluruh UKK. Bagi yang lulus, sistem menyiapkan data draf
+sertifikat (nomor format UKK/tahun/kode-jurusan/urut 4 digit).
+
+Asumsi: (1) Kelulusan dinilai per unit kompetensi; siswa yang gagal satu
+unit hanya mengulang unit itu. (2) Tanpa bukti praktik, nilai praktik
+tidak sah. (3) CBT menyediakan data + draf sertifikat; sertifikat resmi
+diterbitkan lembaga berwenang (BNSP/LSP/DUDIKA/sekolah). (4) SoD: penguji
+UKK BUKAN finalisator nilai UKK; finalisasi oleh kewenangan terpisah.
+(5) Predikat: &lt;70 Belum Tuntas; 70-79 Cukup; 80-90 Baik; 91-100
+Sangat Baik.
+
+Fakta aplikasi yang dipakai: UKK teori 40% + praktik 60%, rubrik Proses
+30% / Produk 50% / Sikap 20%, lulus &gt;= 70 (KONTRAK §8.6;
+UKK-RUBRIK-SERTIFIKAT.md); upload berkas UKK maks 10 MB, ekstensi
+diizinkan pdf/doc/docx/jpg/jpeg/png/zip (UKK-RUBRIK-SERTIFIKAT.md §4);
+SoD penguji != finalisator (KONTRAK §5.3).</documentation>
+    <laneSet id="laneset_to_be_06_ukk">
+      <lane id="lane_0" name="Penguji UKK">
+        <flowNodeRef>start</flowNodeRef>
+        <flowNodeRef>t_skema</flowNodeRef>
+        <flowNodeRef>t_rubrik</flowNodeRef>
+        <flowNodeRef>t_belum</flowNodeRef>
+        <flowNodeRef>end_belum</flowNodeRef>
+        <flowNodeRef>end_lulus</flowNodeRef>
+      </lane>
+      <lane id="lane_1" name="Siswa">
+        <flowNodeRef>t_teori</flowNodeRef>
+        <flowNodeRef>t_praktik</flowNodeRef>
+        <flowNodeRef>t_unggah</flowNodeRef>
+        <flowNodeRef>t_perbaiki</flowNodeRef>
+      </lane>
+      <lane id="lane_2" name="Sistem (CBT SMK v2)">
+        <flowNodeRef>t_nilai_teori</flowNodeRef>
+        <flowNodeRef>g_valid</flowNodeRef>
+        <flowNodeRef>t_hitung_p</flowNodeRef>
+        <flowNodeRef>t_hitung_a</flowNodeRef>
+        <flowNodeRef>g_lulus</flowNodeRef>
+        <flowNodeRef>t_final</flowNodeRef>
+        <flowNodeRef>t_sertifikat</flowNodeRef>
+      </lane>
+    </laneSet>
+    <startEvent id="start" name="Mulai">
+      <outgoing>f01</outgoing>
+    </startEvent>
+    <userTask id="t_skema" name="Tetapkan Skema dan Unit Kompetensi UKK">
+      <incoming>f01</incoming>
+      <outgoing>f02</outgoing>
+    </userTask>
+    <userTask id="t_teori" name="Kerjakan Ujian Teori UKK via CBT">
+      <incoming>f02</incoming>
+      <outgoing>f03</outgoing>
+    </userTask>
+    <serviceTask id="t_nilai_teori" name="Nilai Ujian Teori UKK">
+      <incoming>f03</incoming>
+      <outgoing>f04</outgoing>
+    </serviceTask>
+    <userTask id="t_praktik" name="Kerjakan Praktik di Lab/Bengkel">
+      <incoming>f04</incoming>
+      <outgoing>f05</outgoing>
+    </userTask>
+    <userTask id="t_unggah" name="Unggah Berkas Praktik">
+      <incoming>f05</incoming>
+      <incoming>f08</incoming>
+      <outgoing>f06</outgoing>
+    </userTask>
+    <exclusiveGateway id="g_valid" name="Berkas Praktik Valid?">
+      <incoming>f06</incoming>
+      <outgoing>f07</outgoing>
+      <outgoing>f09</outgoing>
+    </exclusiveGateway>
+    <userTask id="t_perbaiki" name="Perbaiki Berkas Praktik">
+      <incoming>f07</incoming>
+      <outgoing>f08</outgoing>
+    </userTask>
+    <userTask id="t_rubrik" name="Nilai Rubrik Praktik">
+      <incoming>f09</incoming>
+      <outgoing>f10</outgoing>
+    </userTask>
+    <serviceTask id="t_hitung_p" name="Hitung Nilai Praktik">
+      <incoming>f10</incoming>
+      <outgoing>f11</outgoing>
+    </serviceTask>
+    <serviceTask id="t_hitung_a" name="Hitung Nilai Akhir UKK">
+      <incoming>f11</incoming>
+      <outgoing>f12</outgoing>
+    </serviceTask>
+    <exclusiveGateway id="g_lulus" name="Nilai Akhir &gt;= 70?">
+      <incoming>f12</incoming>
+      <outgoing>f13</outgoing>
+      <outgoing>f15</outgoing>
+    </exclusiveGateway>
+    <userTask id="t_belum" name="Nyatakan Belum Lulus dan Uji Ulang per Unit">
+      <incoming>f13</incoming>
+      <outgoing>f14</outgoing>
+    </userTask>
+    <endEvent id="end_belum" name="Selesai: Belum Lulus UKK">
+      <incoming>f14</incoming>
+    </endEvent>
+    <serviceTask id="t_final" name="Finalisasi Nilai UKK">
+      <incoming>f15</incoming>
+      <outgoing>f16</outgoing>
+    </serviceTask>
+    <serviceTask id="t_sertifikat" name="Siapkan Data Draf Sertifikat">
+      <incoming>f16</incoming>
+      <outgoing>f17</outgoing>
+    </serviceTask>
+    <endEvent id="end_lulus" name="Selesai: Lulus UKK">
+      <incoming>f17</incoming>
+    </endEvent>
+    <sequenceFlow id="f01" sourceRef="start" targetRef="t_skema" />
+    <sequenceFlow id="f02" sourceRef="t_skema" targetRef="t_teori" />
+    <sequenceFlow id="f03" sourceRef="t_teori" targetRef="t_nilai_teori" />
+    <sequenceFlow id="f04" sourceRef="t_nilai_teori" targetRef="t_praktik" />
+    <sequenceFlow id="f05" sourceRef="t_praktik" targetRef="t_unggah" />
+    <sequenceFlow id="f06" sourceRef="t_unggah" targetRef="g_valid" />
+    <sequenceFlow id="f07" sourceRef="g_valid" targetRef="t_perbaiki" name="Tidak" />
+    <sequenceFlow id="f08" sourceRef="t_perbaiki" targetRef="t_unggah" />
+    <sequenceFlow id="f09" sourceRef="g_valid" targetRef="t_rubrik" name="Ya" />
+    <sequenceFlow id="f10" sourceRef="t_rubrik" targetRef="t_hitung_p" />
+    <sequenceFlow id="f11" sourceRef="t_hitung_p" targetRef="t_hitung_a" />
+    <sequenceFlow id="f12" sourceRef="t_hitung_a" targetRef="g_lulus" />
+    <sequenceFlow id="f13" sourceRef="g_lulus" targetRef="t_belum" name="Tidak" />
+    <sequenceFlow id="f14" sourceRef="t_belum" targetRef="end_belum" />
+    <sequenceFlow id="f15" sourceRef="g_lulus" targetRef="t_final" name="Ya" />
+    <sequenceFlow id="f16" sourceRef="t_final" targetRef="t_sertifikat" />
+    <sequenceFlow id="f17" sourceRef="t_sertifikat" targetRef="end_lulus" />
+  </process>
+  <bpmndi:BPMNDiagram id="diagram_to_be_06_ukk" name="To-Be 06 UKK">
+    <bpmndi:BPMNPlane id="plane_to_be_06_ukk" bpmnElement="to_be_06_ukk">
+      <bpmndi:BPMNShape id="di_lane_0" bpmnElement="lane_0" isHorizontal="true">
+        <dc:Bounds x="0" y="0" width="2540" height="230" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_lane_1" bpmnElement="lane_1" isHorizontal="true">
+        <dc:Bounds x="0" y="250" width="2540" height="230" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_lane_2" bpmnElement="lane_2" isHorizontal="true">
+        <dc:Bounds x="0" y="500" width="2540" height="230" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_start" bpmnElement="start">
+        <dc:Bounds x="30" y="97" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_skema" bpmnElement="t_skema">
+        <dc:Bounds x="205" y="84" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_teori" bpmnElement="t_teori">
+        <dc:Bounds x="380" y="334" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_nilai_teori" bpmnElement="t_nilai_teori">
+        <dc:Bounds x="555" y="584" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_praktik" bpmnElement="t_praktik">
+        <dc:Bounds x="730" y="334" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_unggah" bpmnElement="t_unggah">
+        <dc:Bounds x="905" y="334" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_g_valid" bpmnElement="g_valid">
+        <dc:Bounds x="1080" y="590" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_perbaiki" bpmnElement="t_perbaiki">
+        <dc:Bounds x="1255" y="409" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_rubrik" bpmnElement="t_rubrik">
+        <dc:Bounds x="1255" y="84" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_hitung_p" bpmnElement="t_hitung_p">
+        <dc:Bounds x="1430" y="584" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_hitung_a" bpmnElement="t_hitung_a">
+        <dc:Bounds x="1605" y="584" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_g_lulus" bpmnElement="g_lulus">
+        <dc:Bounds x="1780" y="590" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_belum" bpmnElement="t_belum">
+        <dc:Bounds x="1955" y="159" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_end_belum" bpmnElement="end_belum">
+        <dc:Bounds x="2130" y="172" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_final" bpmnElement="t_final">
+        <dc:Bounds x="1955" y="584" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_sertifikat" bpmnElement="t_sertifikat">
+        <dc:Bounds x="2130" y="584" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_end_lulus" bpmnElement="end_lulus">
+        <dc:Bounds x="2305" y="97" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="di_f01" bpmnElement="f01">
+        <di:waypoint x="66" y="115" />
+        <di:waypoint x="205" y="115" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f02" bpmnElement="f02">
+        <di:waypoint x="355" y="115" />
+        <di:waypoint x="380" y="365" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f03" bpmnElement="f03">
+        <di:waypoint x="530" y="365" />
+        <di:waypoint x="555" y="615" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f04" bpmnElement="f04">
+        <di:waypoint x="705" y="615" />
+        <di:waypoint x="730" y="365" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f05" bpmnElement="f05">
+        <di:waypoint x="880" y="365" />
+        <di:waypoint x="905" y="365" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f06" bpmnElement="f06">
+        <di:waypoint x="1055" y="365" />
+        <di:waypoint x="1080" y="615" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f07" bpmnElement="f07">
+        <di:waypoint x="1130" y="615" />
+        <di:waypoint x="1255" y="440" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f08" bpmnElement="f08">
+        <di:waypoint x="1330" y="471" />
+        <di:waypoint x="1330" y="770" />
+        <di:waypoint x="980" y="770" />
+        <di:waypoint x="980" y="396" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f09" bpmnElement="f09">
+        <di:waypoint x="1130" y="615" />
+        <di:waypoint x="1255" y="115" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f10" bpmnElement="f10">
+        <di:waypoint x="1405" y="115" />
+        <di:waypoint x="1430" y="615" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f11" bpmnElement="f11">
+        <di:waypoint x="1580" y="615" />
+        <di:waypoint x="1605" y="615" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f12" bpmnElement="f12">
+        <di:waypoint x="1755" y="615" />
+        <di:waypoint x="1780" y="615" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f13" bpmnElement="f13">
+        <di:waypoint x="1830" y="615" />
+        <di:waypoint x="1955" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f14" bpmnElement="f14">
+        <di:waypoint x="2105" y="190" />
+        <di:waypoint x="2130" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f15" bpmnElement="f15">
+        <di:waypoint x="1830" y="615" />
+        <di:waypoint x="1955" y="615" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f16" bpmnElement="f16">
+        <di:waypoint x="2105" y="615" />
+        <di:waypoint x="2130" y="615" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f17" bpmnElement="f17">
+        <di:waypoint x="2280" y="615" />
+        <di:waypoint x="2305" y="115" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

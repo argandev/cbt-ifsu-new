@@ -1,0 +1,109 @@
+{
+  "applied": [
+    {
+      "fix": "K7",
+      "detail": "audit_log.actor_id -> users '0..* : 1' -> '0..* : 0..1' (actor_id nullable)"
+    },
+    {
+      "fix": "K7",
+      "detail": "guru.user_id -> users '0..* : 1' -> '0..* : 0..1' (user_id nullable)"
+    },
+    {
+      "fix": "K7",
+      "detail": "siswa.user_id -> users '0..* : 1' -> '0..* : 0..1' (user_id nullable)"
+    },
+    {
+      "fix": "K7",
+      "detail": "bank_soal.guru_id -> users '0..* : 1' -> '0..* : 0..1' (guru_id nullable (FK ke users.id, migrasi 0003))"
+    },
+    {
+      "fix": "K7",
+      "detail": "usulan_unblock.diproses_oleh -> users '0..* : 1' -> '0..* : 0..1' (diproses_oleh nullable)"
+    },
+    {
+      "fix": "K7",
+      "detail": "berita_acara.dibuat_oleh -> users '0..* : 1' -> '0..* : 0..1' (dibuat_oleh nullable)"
+    },
+    {
+      "fix": "K7",
+      "detail": "ukk_nilai.dinilai_oleh -> users '0..* : 1' -> '0..* : 0..1' (dinilai_oleh nullable)"
+    },
+    {
+      "fix": "K7",
+      "detail": "ukk_berkas.diupload_oleh -> users '0..* : 1' -> '0..* : 0..1' (diupload_oleh nullable)"
+    },
+    {
+      "fix": "K7",
+      "detail": "backup_meta.dibuat_oleh -> users '0..* : 1' -> '0..* : 0..1' (dibuat_oleh nullable)"
+    },
+    {
+      "fix": "K7",
+      "detail": "sod_overrides.actor_id -> users '0..* : 1' -> '0..* : 0..1' (actor_id nullable)"
+    },
+    {
+      "fix": "K7",
+      "detail": "mapel.jurusan_id -> jurusan '0..* : 1' -> '0..* : 0..1' (jurusan_id nullable)"
+    },
+    {
+      "fix": "K7",
+      "detail": "kisi_kisi.kompetensi_id -> kompetensi '0..* : 1' -> '0..* : 0..1' (kompetensi_id nullable)"
+    },
+    {
+      "fix": "K7",
+      "detail": "soal.kompetensi_id -> kompetensi '0..* : 1' -> '0..* : 0..1' (kompetensi_id nullable)"
+    },
+    {
+      "fix": "K7",
+      "detail": "soal.kisi_kisi_id -> kisi_kisi '0..* : 1' -> '0..* : 0..1' (kisi_kisi_id nullable)"
+    },
+    {
+      "fix": "K7",
+      "detail": "nilai_akhir.jadwal_id -> jadwal_ujian '0..* : 1..1' -> '0..* : 1' (normalisasi penulisan 1..1 -> 1 (jadwal_id NOT NULL, tidak UNIQUE))"
+    },
+    {
+      "fix": "K7",
+      "detail": "berita_acara.jadwal_id -> jadwal_ujian '0..* : 1..1' -> '0..1 : 1' (jadwal_id UNIQUE (migrasi 0005): satu jadwal paling banyak satu BA)"
+    },
+    {
+      "fix": "K7",
+      "detail": "nilai_akhir.attempt_id -> attempt '0..* : 1..1' -> '0..1 : 1' (attempt_id UNIQUE (migrasi 0005): satu attempt paling banyak satu nilai)"
+    },
+    {
+      "fix": "K7",
+      "detail": "jadwal_ujian.event_id -> event '0..* : 1' -> '0..* : 0..1' (event_id nullable)"
+    },
+    {
+      "fix": "K7",
+      "detail": "jadwal_ujian.ruangan_id -> ruangan '0..* : 1' -> '0..* : 0..1' (ruangan_id nullable)"
+    },
+    {
+      "fix": "K4",
+      "detail": "Diagram Use Case CBT SMK v2: documentation ditambahkan (608 karakter)"
+    },
+    {
+      "fix": "K4",
+      "detail": "Diagram Class Domain CBT SMK v2: documentation ditambahkan (499 karakter)"
+    },
+    {
+      "fix": "K4",
+      "detail": "Diagram Activity Pelaksanaan Ujian Siswa: documentation ditambahkan (511 karakter)"
+    },
+    {
+      "fix": "K4",
+      "detail": "Diagram Activity Koreksi Esai ke Rekap: documentation ditambahkan (323 karakter)"
+    },
+    {
+      "fix": "K4",
+      "detail": "Diagram Sequence Login + Wajib Ganti Password: documentation ditambahkan (547 karakter)"
+    },
+    {
+      "fix": "K4",
+      "detail": "Diagram Sequence Simpan Jawaban + Auto-Submit: documentation ditambahkan (602 karakter)"
+    },
+    {
+      "fix": "K4",
+      "detail": "Diagram ERD Skema Database CBT SMK v2 (PostgreSQL, migrasi 0001-0012): documentation ditambahkan (578 karakter)"
+    }
+  ],
+  "skipped": []
+}

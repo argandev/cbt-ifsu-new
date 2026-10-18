@@ -1,0 +1,85 @@
+/* print.css — stylesheet khusus print (Tim Tambahan 3).
+ * BARU — tidak mengubah index.css.
+ * AKTIVASI: tim integrasi menambahkan `import "./print.css";` di main.tsx
+ * (atau mengimpornya dari halaman cetak). Sampai diimpor, aturan ini
+ * belum aktif. Kelas .print-hidden juga dipakai di beberapa halaman lama
+ * (UkkSertifikatPage, KartuPesertaPage) — aturan di bawah membuatnya
+ * benar-benar tersembunyi saat print.
+ */
+@page {
+  size: A4;
+  margin: 15mm;
+}
+
+@media print {
+  /* Sembunyikan navigasi & kontrol non-cetak. */
+  header,
+  footer,
+  nav,
+  aside,
+  .print-hidden,
+  button,
+  [role="navigation"],
+  [aria-label="Breadcrumb"] {
+    display: none !important;
+  }
+
+  /* Konten cetak memakai lebar penuh, tanpa bayangan/latar. */
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 11pt;
+  }
+
+  .print-area,
+  main,
+  #konten {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+    overflow: visible !important;
+  }
+
+  /* Hemat tinta: tanpa latar berwarna / bayangan. */
+  * {
+    background: transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Tabel full-width, garis hitam, jangan terpotong antar halaman di tengah baris. */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  th,
+  td {
+    border: 1px solid #000 !important;
+    padding: 6px 8px !important;
+    text-align: left;
+    color: #000 !important;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Link tampil sebagai teks biasa (tanpa URL tambahan). */
+  a {
+    color: #000 !important;
+    text-decoration: none !important;
+  }
+
+  /* Hindari blok tanda tangan terbelah antar halaman. */
+  .print-area footer,
+  .tanda-tangan {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

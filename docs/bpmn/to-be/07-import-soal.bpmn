@@ -1,0 +1,268 @@
+<?xml version='1.0' encoding='utf-8'?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="defs_to_be_07_import_soal" targetNamespace="http://cbt-smk-v2/bpmn/to-be" exporter="CBT SMK v2 Tim To-Be BPMN" exporterVersion="1.0">
+  <process id="to_be_07_import_soal" name="To-Be 07 Import Soal" isExecutable="false">
+    <documentation>To-Be 07 — Import Soal DENGAN aplikasi CBT SMK v2.
+
+Alur: Guru mengunduh template resmi (Excel .xlsx atau Word .docx), mengisi
+template (Excel: satu baris = satu soal; Word: satu blok = satu soal dengan
+label SOAL N, TIPE:, PERTANYAAN:, KUNCI:, dst.), lalu mengunggah berkas.
+Sistem memvalidasi berkas TANPA menyimpan (dry-run) dan menampilkan
+pratinjau: soal ter-parse + error/warning per baris + duplikat. Berkas
+yang formatnya tidak valid ditolak seluruhnya. Bila ada error per baris,
+guru memperbaiki berkas lalu mengunggah ulang. Bila pratinjau bersih,
+guru memilih mode penyimpanan (all_or_nothing = tolak semua bila ada
+error; skip_errors = lewati baris yang error) dan perlakuan duplikat
+(lewati / simpan_ganda), mengonfirmasi simpan, lalu sistem menyimpan
+soal ke bank berstatus DRAF (wajib ditelaah).
+
+Asumsi: (1) Satu berkas = satu bank soal; bank berasal dari pilihan guru
+di aplikasi, bukan dari isi berkas. (2) Batas: maks 500 soal dan maks
+5 MB per berkas. (3) Gambar inline di Excel/Word TIDAK terimpor; gambar
+hanya lewat tautan media_url/MEDIA:. (4) Kunci kosong = error untuk 12
+tipe dinilai otomatis; boleh kosong + warning untuk uraian/upload_file/
+praktik_singkat; diabaikan untuk pernyataan_sikap. (5) CSV TIDAK
+didukung — jalur CSV lama dihapus dari UI. (6) Google Docs tidak
+diimpor langsung; ekspor dulu ke .docx.
+
+Fakta aplikasi yang dipakai: endpoint import preview + xlsx + template
+xlsx/docx (PANDUAN-IMPORT-SOAL.md; ANALISIS-IMPORT-SOAL.md); mode
+all_or_nothing / skip_errors + duplikat lewati / simpan_ganda
+(PANDUAN-IMPORT-SOAL.md §8); katalog error E1-E32 + warning W1-W7
+(PANDUAN-IMPORT-SOAL.md §10).</documentation>
+    <laneSet id="laneset_to_be_07_import_soal">
+      <lane id="lane_0" name="Guru">
+        <flowNodeRef>start</flowNodeRef>
+        <flowNodeRef>t_unduh</flowNodeRef>
+        <flowNodeRef>t_isi</flowNodeRef>
+        <flowNodeRef>t_unggah</flowNodeRef>
+        <flowNodeRef>g_ulang</flowNodeRef>
+        <flowNodeRef>end_batal</flowNodeRef>
+        <flowNodeRef>t_perbaiki</flowNodeRef>
+        <flowNodeRef>t_mode</flowNodeRef>
+        <flowNodeRef>t_duplikat</flowNodeRef>
+        <flowNodeRef>t_konfirm</flowNodeRef>
+        <flowNodeRef>end</flowNodeRef>
+      </lane>
+      <lane id="lane_1" name="Sistem (CBT SMK v2)">
+        <flowNodeRef>t_validasi</flowNodeRef>
+        <flowNodeRef>g_format</flowNodeRef>
+        <flowNodeRef>t_tolak</flowNodeRef>
+        <flowNodeRef>g_error</flowNodeRef>
+        <flowNodeRef>t_simpan</flowNodeRef>
+      </lane>
+    </laneSet>
+    <startEvent id="start" name="Mulai">
+      <outgoing>f01</outgoing>
+    </startEvent>
+    <userTask id="t_unduh" name="Unduh Template Excel atau Word">
+      <incoming>f01</incoming>
+      <outgoing>f02</outgoing>
+    </userTask>
+    <userTask id="t_isi" name="Isi Template Sesuai Format">
+      <incoming>f02</incoming>
+      <incoming>f08</incoming>
+      <outgoing>f03</outgoing>
+    </userTask>
+    <userTask id="t_unggah" name="Unggah Berkas Template">
+      <incoming>f03</incoming>
+      <incoming>f12</incoming>
+      <outgoing>f04</outgoing>
+    </userTask>
+    <serviceTask id="t_validasi" name="Validasi Berkas dan Tampilkan Pratinjau">
+      <incoming>f04</incoming>
+      <outgoing>f05</outgoing>
+    </serviceTask>
+    <exclusiveGateway id="g_format" name="Format Berkas Valid?">
+      <incoming>f05</incoming>
+      <outgoing>f06</outgoing>
+      <outgoing>f10</outgoing>
+    </exclusiveGateway>
+    <serviceTask id="t_tolak" name="Tampilkan Penolakan Berkas">
+      <incoming>f06</incoming>
+      <outgoing>f07</outgoing>
+    </serviceTask>
+    <exclusiveGateway id="g_ulang" name="Perbaiki dan Unggah Ulang?">
+      <incoming>f07</incoming>
+      <outgoing>f08</outgoing>
+      <outgoing>f09</outgoing>
+    </exclusiveGateway>
+    <endEvent id="end_batal" name="Selesai: Import Dibatalkan">
+      <incoming>f09</incoming>
+    </endEvent>
+    <exclusiveGateway id="g_error" name="Ada Error per Baris?">
+      <incoming>f10</incoming>
+      <outgoing>f11</outgoing>
+      <outgoing>f13</outgoing>
+    </exclusiveGateway>
+    <userTask id="t_perbaiki" name="Perbaiki Baris Error di Berkas">
+      <incoming>f11</incoming>
+      <outgoing>f12</outgoing>
+    </userTask>
+    <userTask id="t_mode" name="Pilih Mode Penyimpanan">
+      <incoming>f13</incoming>
+      <outgoing>f14</outgoing>
+    </userTask>
+    <userTask id="t_duplikat" name="Pilih Perlakuan Duplikat">
+      <incoming>f14</incoming>
+      <outgoing>f15</outgoing>
+    </userTask>
+    <userTask id="t_konfirm" name="Konfirmasi Simpan">
+      <incoming>f15</incoming>
+      <outgoing>f16</outgoing>
+    </userTask>
+    <serviceTask id="t_simpan" name="Simpan Soal ke Bank sebagai DRAF">
+      <incoming>f16</incoming>
+      <outgoing>f17</outgoing>
+    </serviceTask>
+    <endEvent id="end" name="Selesai: Soal Masuk Bank">
+      <incoming>f17</incoming>
+    </endEvent>
+    <sequenceFlow id="f01" sourceRef="start" targetRef="t_unduh" />
+    <sequenceFlow id="f02" sourceRef="t_unduh" targetRef="t_isi" />
+    <sequenceFlow id="f03" sourceRef="t_isi" targetRef="t_unggah" />
+    <sequenceFlow id="f04" sourceRef="t_unggah" targetRef="t_validasi" />
+    <sequenceFlow id="f05" sourceRef="t_validasi" targetRef="g_format" />
+    <sequenceFlow id="f06" sourceRef="g_format" targetRef="t_tolak" name="Tidak" />
+    <sequenceFlow id="f07" sourceRef="t_tolak" targetRef="g_ulang" />
+    <sequenceFlow id="f08" sourceRef="g_ulang" targetRef="t_isi" name="Ya" />
+    <sequenceFlow id="f09" sourceRef="g_ulang" targetRef="end_batal" name="Tidak" />
+    <sequenceFlow id="f10" sourceRef="g_format" targetRef="g_error" name="Ya" />
+    <sequenceFlow id="f11" sourceRef="g_error" targetRef="t_perbaiki" name="Ya" />
+    <sequenceFlow id="f12" sourceRef="t_perbaiki" targetRef="t_unggah" />
+    <sequenceFlow id="f13" sourceRef="g_error" targetRef="t_mode" name="Tidak" />
+    <sequenceFlow id="f14" sourceRef="t_mode" targetRef="t_duplikat" />
+    <sequenceFlow id="f15" sourceRef="t_duplikat" targetRef="t_konfirm" />
+    <sequenceFlow id="f16" sourceRef="t_konfirm" targetRef="t_simpan" />
+    <sequenceFlow id="f17" sourceRef="t_simpan" targetRef="end" />
+  </process>
+  <bpmndi:BPMNDiagram id="diagram_to_be_07_import_soal" name="To-Be 07 Import Soal">
+    <bpmndi:BPMNPlane id="plane_to_be_07_import_soal" bpmnElement="to_be_07_import_soal">
+      <bpmndi:BPMNShape id="di_lane_0" bpmnElement="lane_0" isHorizontal="true">
+        <dc:Bounds x="0" y="0" width="2190" height="230" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_lane_1" bpmnElement="lane_1" isHorizontal="true">
+        <dc:Bounds x="0" y="250" width="2190" height="230" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_start" bpmnElement="start">
+        <dc:Bounds x="30" y="97" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_unduh" bpmnElement="t_unduh">
+        <dc:Bounds x="205" y="84" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_isi" bpmnElement="t_isi">
+        <dc:Bounds x="380" y="84" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_unggah" bpmnElement="t_unggah">
+        <dc:Bounds x="555" y="84" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_validasi" bpmnElement="t_validasi">
+        <dc:Bounds x="730" y="334" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_g_format" bpmnElement="g_format">
+        <dc:Bounds x="905" y="340" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_tolak" bpmnElement="t_tolak">
+        <dc:Bounds x="1080" y="409" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_g_ulang" bpmnElement="g_ulang">
+        <dc:Bounds x="1255" y="165" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_end_batal" bpmnElement="end_batal">
+        <dc:Bounds x="1430" y="172" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_g_error" bpmnElement="g_error">
+        <dc:Bounds x="1080" y="340" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_perbaiki" bpmnElement="t_perbaiki">
+        <dc:Bounds x="1255" y="84" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_mode" bpmnElement="t_mode">
+        <dc:Bounds x="1255" y="9" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_duplikat" bpmnElement="t_duplikat">
+        <dc:Bounds x="1430" y="9" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_konfirm" bpmnElement="t_konfirm">
+        <dc:Bounds x="1605" y="9" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_t_simpan" bpmnElement="t_simpan">
+        <dc:Bounds x="1780" y="259" width="150" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_end" bpmnElement="end">
+        <dc:Bounds x="1955" y="22" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="di_f01" bpmnElement="f01">
+        <di:waypoint x="66" y="115" />
+        <di:waypoint x="205" y="115" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f02" bpmnElement="f02">
+        <di:waypoint x="355" y="115" />
+        <di:waypoint x="380" y="115" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f03" bpmnElement="f03">
+        <di:waypoint x="530" y="115" />
+        <di:waypoint x="555" y="115" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f04" bpmnElement="f04">
+        <di:waypoint x="705" y="115" />
+        <di:waypoint x="730" y="365" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f05" bpmnElement="f05">
+        <di:waypoint x="880" y="365" />
+        <di:waypoint x="905" y="365" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f06" bpmnElement="f06">
+        <di:waypoint x="955" y="365" />
+        <di:waypoint x="1080" y="440" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f07" bpmnElement="f07">
+        <di:waypoint x="1230" y="440" />
+        <di:waypoint x="1255" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f08" bpmnElement="f08">
+        <di:waypoint x="1280" y="215" />
+        <di:waypoint x="1280" y="520" />
+        <di:waypoint x="455" y="520" />
+        <di:waypoint x="455" y="146" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f09" bpmnElement="f09">
+        <di:waypoint x="1305" y="190" />
+        <di:waypoint x="1430" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f10" bpmnElement="f10">
+        <di:waypoint x="955" y="365" />
+        <di:waypoint x="1080" y="365" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f11" bpmnElement="f11">
+        <di:waypoint x="1130" y="365" />
+        <di:waypoint x="1255" y="115" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f12" bpmnElement="f12">
+        <di:waypoint x="1330" y="146" />
+        <di:waypoint x="1330" y="548" />
+        <di:waypoint x="630" y="548" />
+        <di:waypoint x="630" y="146" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f13" bpmnElement="f13">
+        <di:waypoint x="1130" y="365" />
+        <di:waypoint x="1255" y="40" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f14" bpmnElement="f14">
+        <di:waypoint x="1405" y="40" />
+        <di:waypoint x="1430" y="40" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f15" bpmnElement="f15">
+        <di:waypoint x="1580" y="40" />
+        <di:waypoint x="1605" y="40" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f16" bpmnElement="f16">
+        <di:waypoint x="1755" y="40" />
+        <di:waypoint x="1780" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f17" bpmnElement="f17">
+        <di:waypoint x="1930" y="290" />
+        <di:waypoint x="1955" y="40" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>
